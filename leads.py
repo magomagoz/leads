@@ -96,4 +96,4 @@ if "query" in st.session_state:
                 st.caption(f"📌 {info['indirizzo']}")
 
 st.markdown("---")
-st.caption("🚀 100% funziona
+st.caption("🚀 100% funzionale - Token: console.openapi.com (gratis 100/giorno)")
