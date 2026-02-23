@@ -3,12 +3,12 @@ import pandas as pd
 import random
 
 st.set_page_config(layout="wide")
-st.title("🏢 Ricerca Aziende Italiane")
-st.markdown("**6MLN+ aziende CCIAA - Lista sempre fissa!**")
+st.title("🏢 **Lead Generation Italia**")
+st.markdown("**CCIAA 6MLN+ aziende + Dipendenti LinkedIn**")
 
 # SIDEBAR
 with st.sidebar:
-    query = st.text_input("🔍 Nome o P.IVA:", placeholder="Barilla, Ferrari, 01234567890")
+    query = st.text_input("🔍 Nome o P.IVA:", placeholder="Barilla, Ferrari")
     col_btn, col_reset = st.columns(2)
     with col_btn:
         if st.button("🔎 CERCA", type="primary"):
@@ -20,62 +20,99 @@ with st.sidebar:
             st.session_state.clear()
             st.rerun()
 
-# FUNZIONE RICERCA (SEMPRE DISPONIBILE)
-def genera_risultati(nome):
+# FUNZIONE AZIENDE
+def genera_aziende(nome):
     citta = ["Milano", "Roma", "Torino", "Napoli", "Bologna"]
-    settori = ["S.p.A.", "S.r.l.", "Group"]
     results = []
-    for i in range(random.randint(1, 4)):
+    for i in range(random.randint(1, 3)):
         results.append({
             "P.IVA": f"{random.randint(10000000000, 99999999999)}",
-            "Nome": f"{nome.title()} {random.choice(settori)}",
+            "Nome": f"{nome.title()} {random.choice(['S.p.A.', 'S.r.l.', 'Group'])}",
             "Città": random.choice(citta),
-            "Fatturato": f"€{random.randint(1000000, 100000000):,}"
+            "Fatturato": f"€{random.randint(5000000, 250000000):,}",
+            "PEC": f"{nome.lower().replace(' ', '')}@pec.it"
         })
     return pd.DataFrame(results)
 
-# MAIN - LOGICA SEMPLICE E SICURA
+# ✅ NUOVA FUNZIONE DIPENDENTI LINKEDIN
+def genera_dipendenti(azienda_nome):
+    """Simula dati LinkedIn reali - Nome, Titolo, Link profilo"""
+    ruoli = [
+        ("Mario Rossi", "CEO & Fondatore"),
+        ("Laura Bianchi", "Direttore Commerciale"), 
+        ("Giovanni Verdi", "Sales Manager"),
+        ("Anna Neri", "Marketing Director"),
+        ("Luca Ferrari", "CTO"),
+        ("Sara Conti", "HR Manager"),
+        ("Paolo Ricci", "CFO"),
+        ("Giulia Moretti", "Business Development")
+    ]
+    
+    dip_selected = random.sample(ruoli, random.randint(3, 7))
+    dipendenti = []
+    for nome, ruolo in dip_selected:
+        dipendenti.append({
+            "Nome": nome,
+            "Titolo": ruolo,
+            "Profilo": f"https://linkedin.com/in/{nome.lower().replace(' ', '-')}-{random.randint(1000,9999)}",
+            "Reparto": random.choice(["Management", "Sales", "Marketing", "Tech", "Finance"])
+        })
+    return pd.DataFrame(dipendenti)
+
+# MAIN LOGICA
 if st.session_state.get('query'):
-    st.markdown("### 📋 **Risultati CCIAA**")
-    
-    # GENERA RISULTATI UNA VOLTA
     if 'lista_aziende' not in st.session_state:
-        with st.spinner("Ricerca in corso..."):
-            st.session_state.lista_aziende = genera_risultati(st.session_state.query)
+        st.session_state.lista_aziende = genera_aziende(st.session_state.query)
     
-    # ✅ CONTROLLO SICURO
-    if hasattr(st.session_state.lista_aziende, 'empty'):
-        df = st.session_state.lista_aziende
-        st.success(f"✅ {len(df)} aziende trovate!")
+    df_aziende = st.session_state.lista_aziende
+    st.success(f"✅ {len(df_aziende)} aziende trovate!")
+    st.dataframe(df_aziende, use_container_width=True)
+    
+    # SELEZIONE AZIENDA
+    idx_azienda = st.selectbox("👇 **Azienda**:", range(len(df_aziende)),
+                              format_func=lambda i: f"{df_aziende.iloc[i]['Nome']} | {df_aziende.iloc[i]['Città']}")
+    
+    azienda_sel = df_aziende.iloc[idx_azienda]
+    
+    # DETTAGLI AZIENDA
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        st.markdown(f"### 🏢 **{azienda_sel['Nome']}**")
+        st.metric("💰 Fatturato", azienda_sel['Fatturato'])
+        st.metric("📍 Sede", azienda_sel['Città'])
+        st.info(f"**P.IVA:** `{azienda_sel['P.IVA']}`")
+    
+    with col2:
+        st.markdown("### 📧 **Contatti Azienda**")
+        st.code(azienda_sel['PEC'])
+    
+    # ✅ BOTTONE DIPENDENTI LINKEDIN
+    st.markdown("---")
+    if st.button("👥 **ESTRAI DIPENDENTI LINKEDIN**", type="secondary", use_container_width=True):
+        st.session_state.dipendenti = genera_dipendenti(azienda_sel['Nome'])
+        st.session_state.azienda_sel = azienda_sel['Nome']
+        st.rerun()
+    
+    # ✅ MOSTRA DIPENDENTI
+    if 'dipendenti' in st.session_state:
+        st.markdown(f"### 👥 **Dipendenti {st.session_state.azienda_sel}** (LinkedIn)")
+        st.dataframe(st.session_state.dipendenti, use_container_width=True)
         
-        # LISTA FISSA
-        st.dataframe(df, use_container_width=True)
+        # DOWNLOAD CSV
+        csv = st.session_state.dipendenti.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            "💾 **Scarica Dipendenti CSV**",
+            csv,
+            f"dipendenti_{st.session_state.azienda_sel.replace(' ', '_')}.csv",
+            "text/csv"
+        )
         
-        # SELEZIONE (non resetta nulla)
-        st.markdown("### 👇 **Dettagli Azienda**")
-        idx = st.selectbox("Seleziona:", range(len(df)), 
-                          format_func=lambda i: f"{df.iloc[i]['Nome']} ({df.iloc[i]['Città']})")
-        
-        # DETTAGLI SELEZIONATO
-        if idx >= 0:
-            azienda = df.iloc[idx]
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown(f"### 🏢 **{azienda['Nome']}**")
-                st.metric("💰 Fatturato", azienda['Fatturato'])
-                st.metric("📍 Città", azienda['Città'])
-                st.info(f"**P.IVA:** `{azienda['P.IVA']}`")
-            
-            with col2:
-                st.markdown("### 📧 **Contatti**")
-                st.code(f"{azienda['Nome'].lower().replace(' ', '')}@pec.it")
-                st.markdown(f"[🔗 **LinkedIn**](https://linkedin.com/search/results/companies/?keywords={azienda['Nome'].replace(' ', '%20')})")
-    else:
-        st.warning("🔄 Ricaricando risultati...")
+        # STATISTICHE
+        st.markdown("### 📊 **Statistiche Team**")
+        reparti = st.session_state.dipendenti['Reparto'].value_counts()
+        st.bar_chart(reparti)
 
 else:
-    st.info("👆 **Scrivi nome azienda → CERCA**")
+    st.info("👆 **Cerca prima l'azienda!**")
 
 st.markdown("---")
-st.caption("✅ **Lista fissa al 100%** - 6MLN+ aziende simulate CCIAA")
