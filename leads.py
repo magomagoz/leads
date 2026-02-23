@@ -46,40 +46,6 @@ def genera_aziende(nome):
         })
     return pd.DataFrame(results)
 
-# ✅ TEAM COMPLETAMENTE CASUALE OGNI VOLTA
-def genera_team_casuale(nome_azienda):
-    # 100+ NOMI ITALIANI REALI
-    nomi_maschili = ["Mario", "Luca", "Giovanni", "Paolo", "Marco", "Andrea", "Davide", "Riccardo", "Federico", "Alessandro"]
-    nomi_femminili = ["Laura", "Sara", "Giulia", "Anna", "Elena", "Martina", "Valentina", "Chiara", "Francesca", "Cristina"]
-    cognomi = ["Rossi", "Bianchi", "Russo", "Ferrari", "Esposito", "Bianchi", "Romano", "Colombo", "Ricci", "Marino", "Greco", "Bruno", "Rizzo"]
-    
-    # 30+ RUOLI REALI
-    ruoli_executive = ["Amministratore Delegato", "Direttore Generale", "CEO", "Direttore Commerciale", "Direttore Finanziario", "CFO"]
-    ruoli_manager = ["Responsabile Marketing", "Sales Manager", "HR Manager", "Operations Manager", "IT Manager", "Business Development Manager"]
-    
-    num_dipendenti = random.randint(5, 10)
-    team = []
-    
-    for i in range(num_dipendenti):
-        # NOME CASUALE
-        if random.choice([True, False]):
-            nome = random.choice(nomi_maschili)
-        else:
-            nome = random.choice(nomi_femminili)
-        cognome = random.choice(cognomi)
-        nome_completo = f"{nome} {cognome}"
-        
-        # RUOLO CASUALE
-        ruolo = random.choice(ruoli_executive + ruoli_manager)
-        
-        team.append({
-            "Nome": nome_completo,
-            "Titolo": ruolo,
-            "LinkedIn": f"https://www.linkedin.com/in/{nome_completo.lower().replace(' ', '-')}-{random.randint(1000, 9999)}"
-        })
-    
-    return pd.DataFrame(team)
-
 # MAIN
 if st.session_state.query.strip():
     # GENERA AZIENDE
@@ -110,17 +76,25 @@ if st.session_state.query.strip():
         st.markdown("### 📧 **Contatti**")
         st.code(azienda['PEC'])
     
-    # BUTTON TEAM
-    st.markdown("---")
-    if st.button("👥 **ESTRAI TEAM LINKEDIN**", type="secondary", use_container_width=True):
-        st.session_state.dipendenti = genera_team_casuale(azienda['Nome'])
-        st.rerun()
+    st.markdown("### 👥 **Trova Dipendenti REALI**")
+    st.markdown(f"""
+    🔍 **[CERCA DIPENDENTI {azienda['Nome']} su LinkedIn]**  
+    https://www.linkedin.com/search/results/people/?currentCompany=%5B%22{azienda['Nome']}%22%5D&origin=SWITCH_SEARCH_VERTICAL
     
-    # TEAM CASUALE
-    if st.session_state.dipendenti is not None:
-        st.markdown("### 👥 **Team Aziendale** (LinkedIn)")
-        st.dataframe(st.session_state.dipendenti[['Nome', 'Titolo', 'LinkedIn']], use_container_width=True)
-        
+    📊 **[CERCA MANAGER {azienda['Nome']} su LinkedIn]**  
+    https://www.linkedin.com/search/results/people/?currentCompany=%5B%22{azienda['Nome']}%22%5D&title=Manager&origin=SWITCH_SEARCH_VERTICAL
+    """)
+    
+    # BOX con istruzioni
+    st.info("""
+    👆 **CLICCA I LINK SOPRA** → Vedi **TUTTI i veri dipendenti** con:
+    - ✅ Nome completo
+    - ✅ Titolo reale  
+    - ✅ Reparto
+    - ✅ Link profilo
+    - ✅ Filtri (CEO, Sales, Marketing...)
+    """)
+            
         # DOWNLOAD
         csv = st.session_state.dipendenti.to_csv(index=False).encode('utf-8')
         st.download_button("💾 **CSV Team**", csv, 
