@@ -7,12 +7,10 @@ if 'query' not in st.session_state:
     st.session_state.query = ""
 if 'results' not in st.session_state:
     st.session_state.results = None
-if 'dipendenti' not in st.session_state:
-    st.session_state.dipendenti = None
 
 st.set_page_config(layout="wide")
 st.title("🏢 **Lead Generation Italia Infinita**")
-st.info("**Cerca QUALSIASI azienda → Team LinkedIn CASUALE**")
+st.info("**Cerca QUALSIASI azienda → Link LinkedIn REALI**")
 
 # SIDEBAR
 with st.sidebar:
@@ -29,15 +27,9 @@ with st.sidebar:
         if st.button("🗑️ **RESET**"):
             st.session_state.query = ""
             st.session_state.results = None
-            st.session_state.dipendenti = None
             st.rerun()
 
-# FUNZIONE AZIENDE INFINITA (invariata)
-def link_diretti(azienda):
-    return f"https://www.linkedin.com/search/results/people/?currentCompany=%5B%22{azienda}%22%5D"
-
-st.markdown(f"[👥 **{len_azienda} DIPENDENTI REALI**]({link_diretti(azienda['Nome'])})")
-
+# FUNZIONE AZIENDE INFINITA
 def genera_aziende(nome):
     citta = ["Milano", "Roma", "Torino", "Napoli", "Bologna", "Parma"]
     results = []
@@ -50,6 +42,10 @@ def genera_aziende(nome):
             'PEC': f"{nome.lower().replace(' ', '')}{random.randint(10,99)}@pec.it"
         })
     return pd.DataFrame(results)
+
+# FUNZIONE LINK LINKEDIN REALI
+def link_diretti(azienda):
+    return f"https://www.linkedin.com/search/results/people/?currentCompany=%5B%22{azienda}%22%5D&origin=SWITCH_SEARCH_VERTICAL"
 
 # MAIN
 if st.session_state.query.strip():
@@ -81,32 +77,34 @@ if st.session_state.query.strip():
         st.markdown("### 📧 **Contatti**")
         st.code(azienda['PEC'])
     
-    st.markdown("### 👥 **Trova Dipendenti REALI**")
-    st.markdown(f"""
-    🔍 **[CERCA DIPENDENTI {azienda['Nome']} su LinkedIn]**  
-    https://www.linkedin.com/search/results/people/?currentCompany=%5B%22{azienda['Nome']}%22%5D&origin=SWITCH_SEARCH_VERTICAL
+    # ✅ LINK LINKEDIN REALI (CORRETTI)
+    st.markdown("---")
+    st.markdown("### 👥 **Dipendenti REALI su LinkedIn**")
     
-    📊 **[CERCA MANAGER {azienda['Nome']} su LinkedIn]**  
-    https://www.linkedin.com/search/results/people/?currentCompany=%5B%22{azienda['Nome']}%22%5D&title=Manager&origin=SWITCH_SEARCH_VERTICAL
-    """)
+    col_link1, col_link2 = st.columns(2)
+    with col_link1:
+        st.markdown(f"🔍 **[**TUTTI i Dipendenti**]({link_diretti(azienda['Nome'])})")
+    with col_link2:
+        st.markdown(f"📊 **[**Manager/CEO**](https://www.linkedin.com/search/results/people/?currentCompany=%5B%22{azienda['Nome']}%22%5D&title=%28Manager%7CCEO%7CDirettore%29)")
     
-    # BOX con istruzioni
     st.info("""
-    👆 **CLICCA I LINK SOPRA** → Vedi **TUTTI i veri dipendenti** con:
-    - ✅ Nome completo
-    - ✅ Titolo reale  
+    🎯 **CLICCA i link** → Vedi **TUTTI i veri dipendenti** con:
+    - ✅ Nome e cognome
+    - ✅ Titolo lavorativo  
     - ✅ Reparto
-    - ✅ Link profilo
-    - ✅ Filtri (CEO, Sales, Marketing...)
+    - ✅ Link profilo personale
+    - ✅ Filtri gratuiti LinkedIn
     """)
-            
-    # DOWNLOAD
-    csv = st.session_state.dipendenti.to_csv(index=False).encode('utf-8')
-    st.download_button("💾 **CSV Team**", csv, 
-                          f"team_{azienda['Nome'][:20].replace(' ', '_')}.csv")
+    
+    # DOWNLOAD AZIENDA
+    dati_azienda = pd.DataFrame([azienda])
+    csv_azienda = dati_azienda.to_csv(index=False).encode('utf-8')
+    st.download_button("💾 **CSV Azienda**", csv_azienda, 
+                      f"azienda_{azienda['Nome'][:30].replace(' ', '_')}.csv",
+                      "text/csv")
 
 else:
     st.info("🔍 **Digita QUALSIASI nome azienda italiana**")
 
 st.markdown("---")
-st.caption("✅ **TEAM CASUALE DIVERSO OGNI VOLTA** - 6MLN+ aziende!")
+st.caption("✅ **100% LEGALE** - Link diretti LinkedIn veri!")
