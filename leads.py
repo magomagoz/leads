@@ -1,99 +1,100 @@
 import streamlit as st
 import requests
+from bs4 import BeautifulSoup
 import pandas as pd
+import re
 
 st.set_page_config(page_title="🔍 Aziende IT", layout="wide")
 st.title("🏢 Ricerca Aziende Italiane")
+st.markdown("**Web search: Nome o P.IVA → CCIAA + Report**")
 
-# SIDEBAR CON TOKEN (NO SECRETS!)
+# Sidebar - SOLO campo ricerca
 with st.sidebar:
-    st.header("🔑 Config")
-    OPENAPI_TOKEN = st.text_input("Token OpenAPI.it:", type="password", 
-                                 placeholder="sk-eyJhbGciOiJIUzI1NiIs...")
-    query = st.text_input("Nome o P.IVA:", placeholder="Es: Apple 01234567890")
-    
-    if st.button("🔎 CERCA", type="primary") and query and OPENAPI_TOKEN:
-        st.session_state.query = query
-        st.session_state.token = OPENAPI_TOKEN
+    query = st.text_input("🔍 Nome o P.IVA:", placeholder="Es: Apple, 01234567890")
+    if st.button("🔎 CERCA", type="primary", use_container_width=True) and query.strip():
+        st.session_state.query = query.strip()
+        st.session_state.results = None
         st.rerun()
 
-if "query" not in st.session_state:
-    st.info("👆 Inserisci token + cerca!")
+if "query" not in st.session_state or not st.session_state.query:
+    st.info("👆 Inserisci nome azienda o P.IVA")
     st.stop()
 
-token = st.session_state.token
-BASE_URL = "https://imprese.openapi.it/api/v1"
-
-@st.cache_data(ttl=3600)
-def search_aziende(query, token):
-    url = f"{BASE_URL}/advance"
-    params = {"q": query, "limit": 10, "dry_run": 0}
-    headers = {"Authorization": f"Bearer {token}"}
-    try:
-        resp = requests.get(url, params=params, headers=headers, timeout=10)
-        if resp.status_code == 401:
-            return "❌ Token non valido"
-        resp.raise_for_status()
-        data = resp.json().get("data", [])
-        return pd.DataFrame([{
-            "P.IVA": d.get("p_iva"), 
-            "Nome": d.get("denominazione"), 
-            "Città": d.get("comune_sede"),
-            "Prov": d.get("provincia_sede")
-        } for d in data])
-    except Exception as e:
-        return f"❌ Errore: {str(e)}"
-
-@st.cache_data(ttl=3600)
-def dettagli_azienda(piva, token):
-    url = f"{BASE_URL}/advance/{piva}"
-    headers = {"Authorization": f"Bearer {token}"}
-    try:
-        resp = requests.get(url, headers=headers, timeout=10)
-        resp.raise_for_status()
-        data = resp.json().get("data", {})
-        bilanci = data.get("bilanci", {}).get("lista_bilanci", [])
-        fatt = max(bilanci, key=lambda x: x.get("anno")) if bilanci else {}
-        return {
-            "nome": data.get("denominazione", ""),
-            "fatturato": f"€{fatt.get('totale_ricavi', 0):,.0f}",
-            "citta": data.get("comune_sede", ""),
-            "provincia": data.get("provincia_sede", ""),
-            "pec": data.get("pec", "N/D"),
-            "indirizzo": data.get("indirizzo_sede", "")
-        }
-    except:
-        return {}
-
-# RISULTATI
-if "query" in st.session_state:
-    with st.spinner("🔍 Ricerca..."):
-        risultati = search_aziende(st.session_state.query, token)
-        
-    if isinstance(risultati, str):
-        st.error(risultati)
-    else:
-        st.success(f"✅ {len(risultati)} aziende trovate!")
-        st.dataframe(risultati, use_container_width=True)
-        
-        # SELEZIONA
-        piva = st.selectbox("👇 Azienda:", risultati["P.IVA"])
-        nome = risultati[risultati["P.IVA"] == piva]["Nome"].iloc[0]
-        
-        if st.button("📊 DETTAGLI", type="primary"):
-            info = dettagli_azienda(piva, token)
-            col1, col2 = st.columns(2)
+# Ricerca web per nome o P.IVA
+@st.cache_data(ttl=1800)  # Cache 30min
+def cerca_azienda_web(query):
+    results = []
+    
+    # Query Google-style per CCIAA/Report
+    search_queries = [
+        f'"{query}" site:reportaziende.it OR site:visureinrete.it OR site:aziende.it',
+        f'"{query}" "partita iva" OR "p.iva" OR "fatturato"',
+        f'P.IVA {query} OR "{query}" "REA" OR "CCIAA"'
+    ]
+    
+    for q in search_queries:
+        try:
+            # Simula ricerca (usa Google Custom Search in produzione)
+            url = f"https://www.google.com/search?q={q.replace(' ', '+')}"
+            headers = {'User-Agent': 'Mozilla/5.0'}
+            resp = requests.get(url, headers=headers, timeout=10)
             
-            with col1:
-                st.markdown(f"### 🏢 **{info['nome']}**")
-                st.metric("💰 Fatturato", info['fatturato'])
-                st.metric("📍 Sede", f"{info['citta']} ({info['provincia']})")
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            snippets = soup.find_all('div', class_='BNeawe s3v9rd AP7Wnd')[:3]
             
-            with col2:
-                st.markdown("### 📧 Contatti")
-                st.code(info['pec'])
-                st.markdown(f"[🔗 LinkedIn](https://linkedin.com/search/results/companies/?keywords={info['nome'].replace(' ', '+')})")
-                st.caption(f"📌 {info['indirizzo']}")
+            for snippet in snippets:
+                title = snippet.find('h3')
+                if title:
+                    title_text = title.get_text()
+                    desc = snippet.get_text()
+                    
+                    # Estrai P.IVA, città, fatturato
+                    piva = re.search(r'\b\d{{11}}\b', desc)
+                    citta = re.search(r'(Roma|Milano|Torino|Napoli|Palermo|Bologna|Firenze|Genova|Verona|Catania|etc)', desc, re.I)
+                    fatt = re.search(r'€?([\d.]+[kKmMbB]?)', desc)
+                    
+                    results.append({
+                        'Titolo': title_text[:80],
+                        'Descrizione': desc[:200],
+                        'P.IVA': piva.group() if piva else 'N/D',
+                        'Città': citta.group() if citta else 'N/D',
+                        'Fatturato': fatt.group() if fatt else 'N/D',
+                        'Link': url
+                    })
+        except:
+            continue
+    
+    return pd.DataFrame(results[:10])
+
+# Esegui ricerca
+with st.spinner("🔍 Ricerca web in corso..."):
+    risultati = cerca_azienda_web(st.session_state.query)
+
+if risultati.empty:
+    st.warning("❌ Nessun risultato trovato")
+else:
+    st.success(f"✅ {len(risultati)} risultati web")
+    st.dataframe(risultati[['Titolo', 'P.IVA', 'Città', 'Fatturato']], 
+                use_container_width=True, hide_index=True)
+    
+    # Dettagli selezionato
+    if len(risultati) > 0:
+        idx = st.selectbox("👇 Seleziona:", range(len(risultati)), 
+                          format_func=lambda i: risultati.iloc[i]['Titolo'])
+        
+        r = risultati.iloc[idx]
+        
+        col1, col2 = st.columns([2,1])
+        with col1:
+            st.markdown(f"### 🏢 **{r['Titolo']}**")
+            st.metric("📍 Città", r['Città'])
+            st.metric("💰 Fatturato stimato", r['Fatturato'])
+            st.info(f"**P.IVA:** {r['P.IVA']}")
+        
+        with col2:
+            st.markdown("### 🔗 **Link**")
+            st.markdown(f"[🌐 Vai al sito]({r['Link']})")
+            st.caption(r['Descrizione'])
 
 st.markdown("---")
-st.caption("🚀 100% funzionale - Token: console.openapi.com (gratis 100/giorno)")
+st.caption("🔍 Ricerca web pubblica - No API, no token richiesti!")
