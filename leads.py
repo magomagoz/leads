@@ -100,9 +100,9 @@ if st.session_state.query.strip():
     - ✅ Filtri (CEO, Sales, Marketing...)
     """)
             
-        # DOWNLOAD
-        csv = st.session_state.dipendenti.to_csv(index=False).encode('utf-8')
-        st.download_button("💾 **CSV Team**", csv, 
+    # DOWNLOAD
+    csv = st.session_state.dipendenti.to_csv(index=False).encode('utf-8')
+    st.download_button("💾 **CSV Team**", csv, 
                           f"team_{azienda['Nome'][:20].replace(' ', '_')}.csv")
 
 else:
