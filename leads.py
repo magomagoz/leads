@@ -1,66 +1,77 @@
 import streamlit as st
+import requests
 import pandas as pd
 
 st.set_page_config(layout="wide")
-st.title("🏢 Ricerca Aziende Italiane")
+st.title("🏢 CCIAA Italia - Dati Ufficiali")
 
-# Sidebar
-query = st.sidebar.text_input("🔍 Nome o P.IVA")
-if st.sidebar.button("🔎 CERCA") and query:
-    st.session_state.query = query
+# Token OpenAPI (gratis 100/giorno)
+with st.sidebar:
+    token = st.text_input("🔑 Token OpenAPI.it:", type="password")
+    query = st.text_input("🔍 Nome o P.IVA:")
 
-# Dati demo CCIAA
-DATI_AZIENDE = {
-    "Apple": {"nome": "Apple Italia S.r.l.", "piva": "01590510932", "fatturato": "€1.2M", "citta": "Milano", "pec": "apple@pec.it"},
-    "Google": {"nome": "Google Italy", "piva": "04713150967", "fatturato": "€250M", "citta": "Milano", "pec": "google@pec.it"},
-    "Fiat": {"nome": "Fiat Chrysler", "piva": "00811700154", "fatturato": "€45B", "citta": "Torino", "pec": "fiat@pec.it"},
-    "Enel": {"nome": "Enel S.p.A.", "piva": "00811700154", "fatturato": "€140B", "citta": "Roma", "pec": "enel@pec.it"},
-    "01234567890": {"nome": "Azienda Test Roma", "piva": "01234567890", "fatturato": "€850K", "citta": "Roma", "pec": "test@pec.it"}
-}
+if not token or not query:
+    st.info("👆 Token + ricerca")
+    st.stop()
 
-if "query" in st.session_state:
-    q = st.session_state.query.lower()
-    risultati = []
-    
-    # Cerca in keys e valori
-    for chiave, dati in DATI_AZIENDE.items():
-        if (q in chiave.lower() or q in dati["nome"].lower() or 
-            dati["piva"] == st.session_state.query):
-            risultati.append({
-                "P.IVA": dati["piva"],
-                "Nome": dati["nome"],
-                "Città": dati["citta"],
-                "Fatturato": dati["fatturato"]
-            })
-    
-    if risultati:
-        df = pd.DataFrame(risultati)
-        st.success(f"✅ {len(df)} aziende trovate!")
-        st.dataframe(df, use_container_width=True, hide_index=True)
+BASE_URL = "https://imprese.openapi.it/api/v1"
+headers = {"Authorization": f"Bearer {token}"}
+
+# 🔍 RICERCA AZIENDE
+def cerca_aziende(q):
+    url = f"{BASE_URL}/advance"
+    params = {"q": q, "limit": 20, "dry_run": 0}
+    resp = requests.get(url, headers=headers, params=params)
+    if resp.status_code == 401:
+        return pd.DataFrame()
+    data = resp.json().get("data", [])
+    return pd.DataFrame([{
+        "P.IVA": d.get("p_iva", ""),
+        "Nome": d.get("denominazione", ""),
+        "Città": d.get("comune_sede", ""),
+        "Provincia": d.get("provincia_sede", "")
+    } for d in data])
+
+# 📊 DETTAGLI
+def dettagli(piva):
+    url = f"{BASE_URL}/advance/{piva}"
+    resp = requests.get(url, headers=headers)
+    data = resp.json().get("data", {})
+    bilanci = data.get("bilanci", {}).get("lista_bilanci", [])
+    fatt = max(bilanci, key=lambda x: x.get("anno")) if bilanci else {}
+    return {
+        "nome": data.get("denominazione", ""),
+        "fatturato": f"€{fatt.get('totale_ricavi', 0):,.0f}",
+        "citta": data.get("comune_sede", ""),
+        "pec": data.get("pec", "N/D"),
+        "indirizzo": data.get("indirizzo_sede", ""),
+        "stato": data.get("stato_liquidazione", "Attiva")
+    }
+
+if st.button("🔎 CERCA"):
+    with st.spinner("Connessione CCIAA..."):
+        df = cerca_aziende(query)
         
-        # ✅ CORREZIONE: Seleziona direttamente dalla DF
-        idx = st.selectbox("👇 Seleziona:", range(len(df)), 
-                          format_func=lambda i: f"{df.iloc[i]['Nome']} ({df.iloc[i]['P.IVA']})")
-        
-        # Dettagli selezionato (SICURO!)
-        selezionato = df.iloc[idx]
-        dati_completi = next(dati for chiave, dati in DATI_AZIENDE.items() 
-                           if dati["piva"] == selezionato["P.IVA"])
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown(f"### 🏢 **{selezionato['Nome']}**")
-            st.metric("💰 Fatturato", selezionato["Fatturato"])
-            st.metric("📍 Sede", selezionato["Città"])
-        
-        with col2:
-            st.markdown("### 📧 **Contatti**")
-            st.code(dati_completi["pec"])
-            st.markdown(f"[🔗 **LinkedIn**](https://linkedin.com/search/results/companies/?keywords={selezionato['Nome'].replace(' ', '+')})")
-            
+    if df.empty:
+        st.error("❌ Token non valido o nessun risultato")
     else:
-        st.warning("❌ Nessun risultato")
-        st.info("💡 Prova: Apple, Google, Fiat, Enel, 01234567890")
+        st.success(f"✅ {len(df)} aziende CCIAA")
+        st.dataframe(df, use_container_width=True)
+        
+        # Seleziona
+        piva = st.selectbox("👇 Azienda:", df["P.IVA"])
+        nome_sel = df[df["P.IVA"] == piva]["Nome"].iloc[0]
+        
+        if st.button("📊 DETTAGLI"):
+            info = dettagli(piva)
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown(f"### 🏢 **{info['nome']}**")
+                st.metric("💰 Fatturato", info['fatturato'])
+                st.metric("📍 Sede", info['citta'])
+            with col2:
+                st.markdown("### 📧 Contatti")
+                st.code(info['pec'])
+                st.markdown(f"[🔗 LinkedIn](https://linkedin.com/search/results/companies/?keywords={info['nome'].replace(' ', '+')})")
 
-st.markdown("---")
-st.caption("✅ FUNZIONA 100% - No API, no blocchi!")
+st.caption("🔗 Token gratis: console.openapi.com/it/apis/imprese")
