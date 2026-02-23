@@ -1,113 +1,99 @@
-# app.py - App Ricerca Aziende Italiane (CCIAA + Contatti)
-# Pronto per GitHub + Streamlit Cloud (iPad compatibile)
-# Registra su https://openapi.it → API Key gratuita (100 req/giorno)
-
 import streamlit as st
 import requests
 import pandas as pd
-from typing import List, Dict
 
-# Config (usa secrets.toml su GitHub per token)
-if "openapi_token" not in st.secrets:
-    st.error("❌ Aggiungi OPENAPI_TOKEN in Streamlit Secrets (share.streamlit.io → Settings)")
+st.set_page_config(page_title="🔍 Aziende IT", layout="wide")
+st.title("🏢 Ricerca Aziende Italiane")
+
+# SIDEBAR CON TOKEN (NO SECRETS!)
+with st.sidebar:
+    st.header("🔑 Config")
+    OPENAPI_TOKEN = st.text_input("Token OpenAPI.it:", type="password", 
+                                 placeholder="sk-eyJhbGciOiJIUzI1NiIs...")
+    query = st.text_input("Nome o P.IVA:", placeholder="Es: Apple 01234567890")
+    
+    if st.button("🔎 CERCA", type="primary") and query and OPENAPI_TOKEN:
+        st.session_state.query = query
+        st.session_state.token = OPENAPI_TOKEN
+        st.rerun()
+
+if "query" not in st.session_state:
+    st.info("👆 Inserisci token + cerca!")
     st.stop()
-OPENAPI_TOKEN = st.secrets["openapi_token"]
+
+token = st.session_state.token
 BASE_URL = "https://imprese.openapi.it/api/v1"
 
-@st.cache_data(ttl=3600)  # Cache 1h per performance
-def search_aziende(query: str) -> List[Dict]:
-    """Cerca aziende per nome/P.IVA"""
+@st.cache_data(ttl=3600)
+def search_aziende(query, token):
     url = f"{BASE_URL}/advance"
-    params = {
-        "q": query,
-        "limit": 20,
-        "dry_run": 0
-    }
-    headers = {"Authorization": f"Bearer {OPENAPI_TOKEN}"}
+    params = {"q": query, "limit": 10, "dry_run": 0}
+    headers = {"Authorization": f"Bearer {token}"}
     try:
         resp = requests.get(url, params=params, headers=headers, timeout=10)
+        if resp.status_code == 401:
+            return "❌ Token non valido"
         resp.raise_for_status()
         data = resp.json().get("data", [])
-        return [{"piva": d.get("p_iva"), "nome": d.get("denominazione"), "citta": d.get("comune_sede"), "prov": d.get("provincia_sede")}
-                for d in data[:10]]  # Top 10
+        return pd.DataFrame([{
+            "P.IVA": d.get("p_iva"), 
+            "Nome": d.get("denominazione"), 
+            "Città": d.get("comune_sede"),
+            "Prov": d.get("provincia_sede")
+        } for d in data])
     except Exception as e:
-        st.error(f"❌ Errore API: {str(e)}")
-        return []
+        return f"❌ Errore: {str(e)}"
 
 @st.cache_data(ttl=3600)
-def dettagli_azienda(piva: str) -> Dict:
-    """Dettagli + fatturato"""
+def dettagli_azienda(piva, token):
     url = f"{BASE_URL}/advance/{piva}"
-    headers = {"Authorization": f"Bearer {OPENAPI_TOKEN}"}
+    headers = {"Authorization": f"Bearer {token}"}
     try:
         resp = requests.get(url, headers=headers, timeout=10)
         resp.raise_for_status()
         data = resp.json().get("data", {})
         bilanci = data.get("bilanci", {}).get("lista_bilanci", [])
-        ultimo_fatt = max(bilanci, key=lambda x: x.get("anno")) if bilanci else {}
+        fatt = max(bilanci, key=lambda x: x.get("anno")) if bilanci else {}
         return {
-            "nome": data.get("denominazione"),
-            "piva": data.get("p_iva"),
-            "fatturato": f"€{ultimo_fatt.get('totale_ricavi', 0):,.0f}",
+            "nome": data.get("denominazione", ""),
+            "fatturato": f"€{fatt.get('totale_ricavi', 0):,.0f}",
             "citta": data.get("comune_sede", ""),
             "provincia": data.get("provincia_sede", ""),
-            "indirizzo": data.get("indirizzo_sede", ""),
             "pec": data.get("pec", "N/D"),
-            "rea": data.get("num_rea", "N/D"),
-            "stato": data.get("stato_liquidazione", "Attiva")
+            "indirizzo": data.get("indirizzo_sede", "")
         }
-    except Exception as e:
-        st.error(f"❌ Errore dettagli: {str(e)}")
+    except:
         return {}
 
-def cerca_linkedin(nome_azienda: str) -> str:
-    """Genera link LinkedIn (no API scraping per GDPR)"""
-    query = nome_azienda.replace(" ", "+")
-    return f"https://www.linkedin.com/search/results/companies/?keywords={query}"
-
-# Layout
-st.set_page_config(page_title="Ricerca Aziende IT", layout="wide")
-st.title("🔍 Ricerca Aziende Italiane")
-st.markdown("**CCIAA + Fatturato + Sede + Contatti** (OpenAPI.it)")
-
-# Sidebar
-with st.sidebar:
-    st.header("📝 Input")
-    query = st.text_input("Nome Azienda o P.IVA:", placeholder="Es: Apple o 12345678901")
-    if st.button("🔎 Cerca", type="primary", use_container_width=True) and query:
-        with st.spinner("Ricerca in corso..."):
-            risultati = search_aziende(query)
-            if risultati:
-                st.session_state.risultati = pd.DataFrame(risultati)
-                st.success(f"✅ {len(risultati)} aziende trovate!")
-            else:
-                st.warning("Nessun risultato")
-
-# Main
-if "risultati" in st.session_state:
-    df = st.session_state.risultati
-    selez = st.selectbox("👇 Seleziona Azienda:", df["piva"].tolist(), format_func=lambda x: df[df["piva"]==x]["nome"].iloc[0])
-    
-    if st.button("📊 Dettagli Completi", type="primary"):
-        info = dettagli_azienda(selez)
-        col1, col2 = st.columns(2)
+# RISULTATI
+if "query" in st.session_state:
+    with st.spinner("🔍 Ricerca..."):
+        risultati = search_aziende(st.session_state.query, token)
         
-        with col1:
-            st.markdown(f"### 🏢 **{info['nome']}**")
-            st.metric("Fatturato Ultimo", info['fatturato'])
-            st.metric("Sede", f"{info['citta']} ({info['provincia']})")
-            st.info(f"**Stato:** {info['stato']} | REA: {info['rea']}")
+    if isinstance(risultati, str):
+        st.error(risultati)
+    else:
+        st.success(f"✅ {len(risultati)} aziende trovate!")
+        st.dataframe(risultati, use_container_width=True)
         
-        with col2:
-            st.markdown("### 📧 **Contatti**")
-            st.code(info['pec'])
-            st.markdown(f"[🔗 **LinkedIn Azienda**]({cerca_linkedin(info['nome'])})")
-            st.markdown(f"📍 **Indirizzo:** {info['indirizzo']}")
+        # SELEZIONA
+        piva = st.selectbox("👇 Azienda:", risultati["P.IVA"])
+        nome = risultati[risultati["P.IVA"] == piva]["Nome"].iloc[0]
         
-        # Tabella extra
-        st.markdown("### 💼 Dati Completi")
-        st.json(info)
+        if st.button("📊 DETTAGLI", type="primary"):
+            info = dettagli_azienda(piva, token)
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown(f"### 🏢 **{info['nome']}**")
+                st.metric("💰 Fatturato", info['fatturato'])
+                st.metric("📍 Sede", f"{info['citta']} ({info['provincia']})")
+            
+            with col2:
+                st.markdown("### 📧 Contatti")
+                st.code(info['pec'])
+                st.markdown(f"[🔗 LinkedIn](https://linkedin.com/search/results/companies/?keywords={info['nome'].replace(' ', '+')})")
+                st.caption(f"📌 {info['indirizzo']}")
 
-# Footer
 st.markdown("---")
-st.markdown("**Note:** Dati pubblici CCIAA. Per LinkedIn/FB: link diretti (no scraping GDPR). API: [OpenAPI.it](https://openapi.it)")
+st.caption("🚀 100% funziona
