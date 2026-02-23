@@ -33,6 +33,11 @@ with st.sidebar:
             st.rerun()
 
 # FUNZIONE AZIENDE INFINITA (invariata)
+def link_diretti(azienda):
+    return f"https://www.linkedin.com/search/results/people/?currentCompany=%5B%22{azienda}%22%5D"
+
+st.markdown(f"[👥 **{len_azienda} DIPENDENTI REALI**]({link_diretti(azienda['Nome'])})")
+
 def genera_aziende(nome):
     citta = ["Milano", "Roma", "Torino", "Napoli", "Bologna", "Parma"]
     results = []
