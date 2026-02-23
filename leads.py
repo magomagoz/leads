@@ -1,9 +1,15 @@
 import streamlit as st
-import pandas as pd
 import requests
+import pandas as pd
 
 st.set_page_config(layout="wide")
-st.title("🏢 Ricerca Aziende Italiane")
+st.title("🏢 CCIAA Italia - Dati Ufficiali")
+
+query = st.text_input("🔍 Nome o P.IVA:")
+
+if not token or not query:
+    st.info("👆 Ricerca")
+    st.stop()
 
 # 🔍 RICERCA AZIENDE
 def cerca_aziende(q):
