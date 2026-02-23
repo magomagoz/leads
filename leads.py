@@ -1,21 +1,9 @@
 import streamlit as st
-import requests
 import pandas as pd
+import requests
 
 st.set_page_config(layout="wide")
-st.title("🏢 CCIAA Italia - Dati Ufficiali")
-
-# Token OpenAPI (gratis 100/giorno)
-with st.sidebar:
-    token = st.text_input("🔑 Token OpenAPI.it:", type="password")
-    query = st.text_input("🔍 Nome o P.IVA:")
-
-if not token or not query:
-    st.info("👆 Token + ricerca")
-    st.stop()
-
-BASE_URL = "https://imprese.openapi.it/api/v1"
-headers = {"Authorization": f"Bearer {token}"}
+st.title("🏢 Ricerca Aziende Italiane")
 
 # 🔍 RICERCA AZIENDE
 def cerca_aziende(q):
