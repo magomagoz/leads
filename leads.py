@@ -15,7 +15,7 @@ st.info("**Cerca aziende nei Registri Imprese RM/FR/LT/RI/VT → P.IVA e Città 
 
 # SIDEBAR CON API KEY (secrets優先)
 with st.sidebar:
-    api_key = st.text_input("🔑 API Key OpenAPI.it (usa secrets.toml):", 
+    api_key = st.text_input("🔑 API Key OpenAPI.it: "ygkoqzkhjbjfszj711b9pj6bbmwv81kw"), 
                             value=st.secrets.get("OPENAPI_KEY", ""), 
                             type="password",
                             help="console.openapi.com → Secrets.toml per fissa")
@@ -42,32 +42,45 @@ PROVINCE_LAZIO = ["RM", "FR", "LT", "RI", "VT"]
 # FUNZIONE RICERCA REALE (ora pulita, senza input UI)
 @st.cache_data(ttl=3600)
 def cerca_aziende_reali(nome, api_key):
+    st.info(f"🔍 DEBUG: Query='{nome}', Key OK={bool(api_key)}")  # Debug
     if not api_key or not nome.strip():
         return pd.DataFrame()
     
+    # TEST URL ESATTO OpenAPI.it (conferma endpoint)
     url = "https://openapi.it/api/v1/cerca-ragione-sociale"
     params = {
         "denominazione": nome.strip(),
-        "province": ",".join(PROVINCE_LAZIO),
+        "province": "RM,FR,LT,RI,VT",
         "api_key": api_key
     }
+    
+    st.info(f"📡 URL: {url}")  # Debug
+    st.json(params)  # Debug params
+    
     try:
         response = requests.get(url, params=params, timeout=10)
-        data = response.json()
-        if data.get("success"):
-            results = []
-            for item in data.get("results", [])[:10]:  # Max 10
-                results.append({
-                    'P.IVA': item.get('piva', 'N/D'),
-                    'Nome': item.get('denominazione', 'N/D'),
-                    'Città': item.get('comune', item.get('provincia', 'N/D')),
-                    'Fatturato': 'N/D',  # Espandi con /advance
-                    'PEC': item.get('pec', 'N/D')
-                })
-            return pd.DataFrame(results)
-        st.error(f"API: {data.get('message', 'Errore sconosciuto')}")
+        st.info(f"📊 Status: {response.status_code}")  # Debug response
+        
+        if response.status_code == 200:
+            data = response.json()
+            st.json(data)  # VEDI ESATTA risposta API!
+            
+            if data.get("success"):
+                # ... resto come prima
+                results = []
+                for item in data.get("results", [])[:5]:
+                    results.append({
+                        'P.IVA': item.get('piva', 'N/D'),
+                        'Nome': item.get('denominazione', 'N/D'),
+                        'Città': item.get('comune', 'N/D'),
+                        'Fatturato': 'N/D',
+                        'PEC': item.get('pec', 'N/D')
+                    })
+                return pd.DataFrame(results)
+        else:
+            st.error(f"❌ API {response.status_code}: {response.text}")
     except Exception as e:
-        st.error(f"Chiamata API fallita: {str(e)}")
+        st.error(f"💥 Errore: {str(e)}")
     return pd.DataFrame()
 
 # MAIN LOGICA
