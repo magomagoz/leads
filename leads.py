@@ -25,12 +25,7 @@ def cerca_aziende_reali(nome, api_key_input):
     api_key = st.secrets.get("OPENAPI_KEY") or api_key_input  # Priorità secrets 
     if not api_key:
         return pd.DataFrame()
-with st.sidebar:
-    st.session_state.api_key = st.text_input("🔑 **API Key OpenAPI.it** (obbligatoria):", 
-                                           
-                                           value=st.session_state.api_key, 
-                                           type="password",
-                                           help="Registrati su console.openapi.com/it/apis/imprese")
+
     st.session_state.query = st.text_input("🔍 Nome azienda:", 
                                          value=st.session_state.query,
                                          placeholder="Barilla, Pizzeria Mario...")
