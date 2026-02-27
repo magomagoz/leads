@@ -15,10 +15,10 @@ st.info("**Cerca aziende nei Registri Imprese RM/FR/LT/RI/VT → P.IVA e Città 
 
 # SIDEBAR CON API KEY (secrets優先)
 with st.sidebar:
-    api_key = st.text_input("🔑 API Key OpenAPI.it: ygkoqzkhjbjfszj711b9pj6bbmwv81kw"), 
-                            value=st.secrets.get("OPENAPI_KEY", ""), 
-                            type="password",
-                            help="console.openapi.com → Secrets.toml per fissa")
+    api_key = st.text_input("🔑 API Key OpenAPI.it: ygkoqzkhjbjfszj711b9pj6bbmwv81kw") 
+                            #value=st.secrets.get("OPENAPI_KEY", ""), 
+                            #type="password",
+                            #help="console.openapi.com → Secrets.toml per fissa")
     
     # CAMPO RICERCA AZIENDE (Spostato QUI dalla funzione!)
     st.session_state.query = st.text_input("🔍 Nome azienda:", 
