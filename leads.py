@@ -18,7 +18,8 @@ st.info("**Cerca aziende nei Registri Imprese RM/FR/LT/RI/VT → P.IVA e Città 
 # SIDEBAR
 with st.sidebar:
     st.session_state.api_key = st.text_input("🔑 **API Key OpenAPI.it** (obbligatoria):", 
-                                           value=st.session_state.api_key, 
+                                           value=ygkoqzkhjbjfszj711b9pj6bbmwv81kw
+                                           #value=st.session_state.api_key, 
                                            type="password",
                                            help="Registrati su console.openapi.com/it/apis/imprese")
     st.session_state.query = st.text_input("🔍 Nome azienda:", 
