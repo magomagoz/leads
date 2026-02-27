@@ -124,8 +124,8 @@ if st.session_state.query.strip():
 OPENAPI_KEY = 'ygkoqzkhjbjfszj711b9pj6bbmwv81kw'
 #```")
 
-else:
-    st.info("🏢 **Digita nome azienda → CERCA**")
+#else:
+    #st.info("🏢 **Digita nome azienda → CERCA**")
 
 st.markdown("---")
 st.caption("✅ CCIAA Lazio - Dati ufficiali")
