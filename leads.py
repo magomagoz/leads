@@ -30,16 +30,16 @@ def cerca_aziende_reali(nome, api_key_input):
                                          value=st.session_state.query,
                                          placeholder="Barilla, Pizzeria Mario...")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🔎 **CERCA**", type="primary"):
-            st.session_state.results = None
-            st.rerun()
-    with col2:
-        if st.button("🗑️ **RESET**"):
-            st.session_state.query = ""
-            st.session_state.results = None
-            st.rerun()
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("🔎 **CERCA**", type="primary"):
+        st.session_state.results = None
+        st.rerun()
+with col2:
+    if st.button("🗑️ **RESET**"):
+        st.session_state.query = ""
+        st.session_state.results = None
+        st.rerun()
 
 # Province CCIAA target (codici da tabella ufficiale)
 PROVINCE_LAZIO = ["RM", "FR", "LT", "RI", "VT"]  # Roma, Frosinone, Latina, Rieti, Viterbo [web:17]
