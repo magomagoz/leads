@@ -122,7 +122,7 @@ if st.session_state.query.strip():
         st.error("❌ **API Key mancante!**")
         #st.info("**Crea `.streamlit/secrets.toml`:\n```
 OPENAPI_KEY = 'ygkoqzkhjbjfszj711b9pj6bbmwv81kw'
-```")
+#```")
 
 else:
     st.info("🏢 **Digita nome azienda → CERCA**")
