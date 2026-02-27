@@ -15,7 +15,16 @@ st.set_page_config(layout="wide")
 st.title("🏢 **Lead Generation CCIAA Lazio**")
 st.info("**Cerca aziende nei Registri Imprese RM/FR/LT/RI/VT → P.IVA e Città reali**")
 
-# SIDEBAR
+# SIDEBAR: opzionale mostra (nascosta in prod)
+api_key = st.sidebar.text_input("🔑 API Key (opzionale con secrets):", 
+                                value=st.secrets.get("OPENAPI_KEY", ""), 
+                                type="password")
+
+# FUNZIONE: priorita secrets, fallback input
+def cerca_aziende_reali(nome, api_key_input):
+    api_key = st.secrets.get("OPENAPI_KEY") or api_key_input  # Priorità secrets 
+    if not api_key:
+        return pd.DataFrame()
 with st.sidebar:
     st.session_state.api_key = st.text_input("🔑 **API Key OpenAPI.it** (obbligatoria):", 
                                            value=ygkoqzkhjbjfszj711b9pj6bbmwv81kw
