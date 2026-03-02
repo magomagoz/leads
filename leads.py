@@ -17,6 +17,11 @@ else:
     st.error("⚠️ Chiave API non trovata nei Secrets! Configurala per continuare.")
     st.stop() # Ferma l'esecuzione qui
 
+if not API_KEY:
+    st.error("❌ La chiave API non è stata caricata nei Secrets!")
+else:
+    st.write(f"✅ Chiave caricata (inizia con: {API_KEY[:5]}...)")
+
 st.title("🏢 **Lead Generation CCIAA REALI**")
 st.info("**Servizio Company Attivo** • Dati ufficiali Registro Imprese via OpenAPI.it")
 
