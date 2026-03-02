@@ -17,7 +17,7 @@ if "OPENAPI_KEY" in st.secrets:
     #st.error("⚠️ Chiave API non trovata nei Secrets! Configurala per continuare.")
     #st.stop() # Ferma l'esecuzione qui
 
-if not OPENAPI_KEY:
+if not API_KEY:
     st.error("❌ La chiave API non è stata caricata nei Secrets!")
 else:
     st.write(f"✅ Chiave caricata (inizia con: {API_KEY[:5]}...)")
