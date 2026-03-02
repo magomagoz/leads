@@ -11,7 +11,11 @@ if 'results' not in st.session_state:
     st.session_state.results = None
 
 # Inserisci qui la tua chiave se non usi st.secrets
-API_KEY = st.secrets.get("OPENAPI_KEY")
+if "OPENAPI_KEY" in st.secrets:
+    API_KEY = st.secrets["OPENAPI_KEY"]
+else:
+    st.error("⚠️ Chiave API non trovata nei Secrets! Configurala per continuare.")
+    st.stop() # Ferma l'esecuzione qui
 
 st.title("🏢 **Lead Generation CCIAA REALI**")
 st.info("**Servizio Company Attivo** • Dati ufficiali Registro Imprese via OpenAPI.it")
