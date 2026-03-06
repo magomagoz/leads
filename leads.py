@@ -44,16 +44,29 @@ def cerca_aziende_api(nome):
     return pd.DataFrame()
 
 @st.cache_data(ttl=86400)
-def ottieni_dati_company(piva):
-    url = f"https://company.openapi.com/IT-advanced/{piva}"
+def ottieni_dati_company(piva_o_id):
+    # Usiamo l'endpoint corretto per il tuo piano (probabilmente IT-advanced)
+    url = f"https://company.openapi.com/IT-advanced/{piva_o_id}"
     headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
-    response = requests.get(url, headers=headers, timeout=15)
-    if response.status_code == 200:
-        raw_data = response.json()
-        # Gestione: se è una lista, prendiamo il primo elemento
-        data = raw_data[0] if isinstance(raw_data, list) else raw_data.get("data", raw_data)
-        return data if isinstance(data, dict) else {}
-    return {}
+    
+    try:
+        response = requests.get(url, headers=headers, timeout=15)
+        if response.status_code == 200:
+            data = response.json()
+            # Gestione sicura se torna una lista o un dict
+            info = data[0] if isinstance(data, list) else data.get("data", data)
+            
+            if isinstance(info, dict):
+                return {
+                    "denominazione": info.get("companyName", "N/D"),
+                    "piva": info.get("vatCode", piva_o_id),
+                    "fatturato": info.get("revenue", "Dato non disp."),
+                    "comune": info.get("address", {}).get("city", "Da verificare") if isinstance(info.get("address"), dict) else "Da verificare"
+                }
+    except Exception as e:
+        st.error(f"Errore: {e}")
+    return {} # Ritorna dizionario vuoto invece di crashare
+
 
 
 # --- INTERFACCIA UTENTE ---
