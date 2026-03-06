@@ -115,8 +115,16 @@ st.markdown("---")
 
 if st.session_state.results is not None and not st.session_state.results.empty:
     df = st.session_state.results
-    
     st.success(f"✅ Trovate {len(df)} potenziali aziende")
+    
+    # Versione sicura per evitare KeyError
+    def formatta_riga(row):
+        nome = row.get('denominazione') or row.get('companyName') or "Azienda Senza Nome"
+        comune = row.get('comune') or "N/D"
+        piva = row.get('piva') or row.get('vatCode') or row.get('id') or "N/D"
+        return f"{nome} ({comune}) - {piva}"
+
+    nomi_aziende = [formatta_riga(row) for _, row in df.iterrows()]
     
     # Adattamento per leggere la PIVA o l'ID della V2
     nomi_aziende = [f"{row['denominazione']} ({row.get('comune', 'N/D')}) - {row.get('piva', row.get('id', 'N/D'))}" for _, row in df.iterrows()]
