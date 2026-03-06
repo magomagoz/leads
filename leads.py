@@ -25,12 +25,13 @@ st.info("**Lead Generation** • Dati ufficiali Registro Imprese via OpenAPI.it 
 
 @st.cache_data(ttl=3600)
 def cerca_aziende_api(nome):
-    """Fase 1: Ricerca V2 (sostituisce il vecchio autocomplete)"""
+    """Fase 1: Ricerca V2 semplificata"""
     url = "https://company.openapi.com/IT-search"
     headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
     params = {
         "companyName": nome.strip(),
-        "dataEnrichment": "Name", # Richiede esplicitamente Nome, Città e PIVA
+        # RIMUOVI o commenta la riga dataEnrichment:
+        # "dataEnrichment": "Name", 
         "limit": 20
     }
     try:
