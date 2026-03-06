@@ -36,15 +36,17 @@ if st.button("🔎 CERCA CONTATTI"):
             if response.status_code == 200:
                 data = dati_risposta.get("data", {})
                 
-                # --- INFO AZIENDA ---
+                # --- INFO AZIENDA (Aggiornate) ---
                 st.subheader("🏢 Informazioni Aziendali")
                 col1, col2 = st.columns(2)
                 with col1:
                     st.write(f"**Ragione Sociale:** {data.get('organization', 'N/D')}")
-                    st.write(f"**Dominio:** {data.get('domain', dominio)}")
+                    st.write(f"**Sito Web:** {data.get('domain', dominio)}")
                 with col2:
-                    st.write(f"**Settore:** {data.get('industry', 'N/D')}")
-                    st.write(f"**Paese:** {data.get('country', 'N/D')}")
+                    # Hunter a volte espone 'vat' (Partita IVA) e 'city' (Città) 
+                    # a seconda della disponibilità nel database
+                    st.write(f"**Partita IVA:** {data.get('vat', 'Non disponibile')}")
+                    st.write(f"**Città:** {data.get('city', 'Non disponibile')}")
                 
                 st.markdown("---")
                 
