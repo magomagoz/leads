@@ -9,8 +9,9 @@ st.set_page_config(layout="wide", page_title="Lead Gen Hunter")
 # Nota: dovrai cambiare il nome della variabile nei secrets di Streamlit
 HUNTER_API_KEY = st.secrets.get("HUNTER_API_KEY", "")
 
-st.title("🚀 Lead Generation Avanzata")
-st.info("**Powered by Hunter.io** • Estrai Sede, Decision Maker e Profili Social")
+st.image("banner.png")
+#st.title("🚀 Lead Generation Avanzata")
+st.info("**Powered by Hunter.io** • Estrai Decision Maker e Profili Social")
 
 # --- RECUPERO CHIAVE SICURO ---
 # Assicurati di aver salvato HUNTER_API_KEY nei Secrets di Streamlit
@@ -22,7 +23,7 @@ except:
 
 dominio = st.text_input("🌐 Inserisci il dominio (es: acea.it)")
 
-if st.button("🔎 CERCA CONTATTI E SOCIAL"):
+if st.button("🔎 CERCA CONTATTI"):
     with st.spinner("Interrogazione database Hunter..."):
         # URL corretto e sicuro
         url = f"https://api.hunter.io/v2/domain-search?domain={dominio.strip()}&api_key={HUNTER_API_KEY}"
