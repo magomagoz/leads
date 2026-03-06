@@ -103,26 +103,18 @@ if st.button("🔎 AVVIA RICERCA SMART", type="primary"):
                 st.error(f"❌ Impossibile trovare dati per '{nome_puro}' con le estensioni comuni.")
 
 
-
-
-
-
-
-
-                    
-
-                    # 4. TABELLA PERSONE (Indice da 1)
-                    emails = data.get("emails", [])
-                    if emails:
-                        st.subheader(f"👥 Persone trovate ({len(emails)})")
-                        lista = []
-                        for e in emails:
-                            lista.append({
-                                "Nome": f"{e.get('first_name', '')} {e.get('last_name', '')}".strip() or "N/D",
-                                "Ruolo": e.get('position', 'N/D'),
-                                "Email": e.get('value', 'N/D'),
-                                "LinkedIn": e.get('linkedin', 'N/D')
-                            })
+                # 4. TABELLA PERSONE (Indice da 1)
+                emails = data.get("emails", [])
+                if emails:
+                    st.subheader(f"👥 Persone trovate ({len(emails)})")
+                    lista = []
+                    for e in emails:
+                        lista.append({
+                            "Nome": f"{e.get('first_name', '')} {e.get('last_name', '')}".strip() or "N/D",
+                            "Ruolo": e.get('position', 'N/D'),
+                            "Email": e.get('value', 'N/D'),
+                            "LinkedIn": e.get('linkedin', 'N/D')
+                        })
                         
                         df = pd.DataFrame(lista)
                         df.index = df.index + 1 
