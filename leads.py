@@ -89,9 +89,8 @@ if st.button("🔎 CERCA CONTATTI E SOCIAL"):
                 df.index = df.index + 1 
                 # ---------------------------------------------------
                 
-                st.dataframe(df, use_container_width=True, 
-                             column_config={"LinkedIn": st.column_config.LinkColumn()})
-        else:
-            st.warning("Nessun contatto trovato.")
+                st.dataframe(df, use_container_width=True, column_config={"LinkedIn": st.column_config.LinkColumn()})
+            else:
+                st.warning("Nessun contatto trovato.")
 
 
