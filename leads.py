@@ -10,21 +10,16 @@ if 'query' not in st.session_state:
 if 'results' not in st.session_state:
     st.session_state.results = None
 
-# Inserisci qui la tua chiave se non usi st.secrets
-if "OPENAPI_KEY" in st.secrets:
-    OPENAPI_KEY = st.secrets["OPENAPI_KEY"]
-
-#else:
-    #st.error("⚠️ Chiave API non trovata nei Secrets! Configurala per continuare.")
-    #st.stop() # Ferma l'esecuzione qui
+# Recupero chiave in modo sicuro
+OPENAPI_KEY = st.secrets.get("OPENAPI_KEY")
 
 if not OPENAPI_KEY:
-    st.error("❌ La chiave API non è stata caricata nei Secrets!")
+    st.error("❌ La chiave API non è stata caricata nei Secrets! Aggiungila per continuare.")
+    st.stop() # Ferma l'esecuzione qui per evitare crash a cascata
 else:
-    st.write(f"✅ Chiave OpenAPI caricata")
+    st.write("✅ Chiave OpenAPI caricata")
 
 st.image("banner.png")
-#st.title("🏢 **Lead Generation CCIAA REALI**")
 st.info("**Lead Generation** • Dati ufficiali Registro Imprese via OpenAPI.it")
 
 # --- FUNZIONI API ---
@@ -33,18 +28,22 @@ st.info("**Lead Generation** • Dati ufficiali Registro Imprese via OpenAPI.it"
 def cerca_aziende_api(nome):
     """Fase 1: Autocomplete per trovare la P.IVA"""
     url = "https://imprese.openapi.it/autocomplete"
-    # Assicurati che OPENAPI_KEY sia la stringa pura della tua chiave
     headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
     params = {
         "denominazione": nome.strip(),
-        "provincia": "RM,FR,LT,RI,VT",
+        "provincia": "RM,FR,LT,RI,VT", # Lazio
         "limit": 20
     }
     try:
         response = requests.get(url, headers=headers, params=params, timeout=15)
+        
         if response.status_code == 200:
             data = response.json()
-            return pd.DataFrame(data) if data else pd.DataFrame()
+            # Ripristinata la lettura corretta del JSON di openapi.it
+            if data.get("success") and data.get("results"):
+                return pd.DataFrame(data["results"])
+            else:
+                return pd.DataFrame()
         else:
             st.error(f"Errore API {response.status_code}: {response.text}")
     except Exception as e:
@@ -53,19 +52,21 @@ def cerca_aziende_api(nome):
 
 @st.cache_data(ttl=86400)
 def ottieni_dati_company(piva):
-    """Fase 2: Recupero dati profondi"""
+    """Fase 2: Recupero dati profondi (Servizio COMPANY)"""
     url = f"https://imprese.openapi.it/base/{piva}"
     headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
     try:
         response = requests.get(url, headers=headers, timeout=15)
+        
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            # Ripristinata la lettura della chiave 'data'
+            return data.get("data", {})
         else:
             st.error(f"Errore Company API {response.status_code}: {response.text}")
     except Exception as e:
         st.error(f"Errore connessione Company: {e}")
     return None
-
 
 # --- INTERFACCIA UTENTE ---
 
@@ -141,11 +142,3 @@ if st.session_state.results is not None and not st.session_state.results.empty:
 
 elif st.session_state.query:
     st.warning("Nessun risultato trovato. Prova a cambiare i filtri o il nome.")
-
-#st.sidebar.markdown("""
-### Istruzioni
-#1. Inserisci il nome azienda.
-#2. Clicca su **Cerca**.
-#3. Seleziona l'azienda corretta dal menu a tendina.
-#4. Clicca su **Estrai Dati** per consumare i crediti Company e vedere PEC e Fatturato.
-#""")
