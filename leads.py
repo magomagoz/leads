@@ -20,8 +20,8 @@ if "OPENAPI_KEY" in st.secrets:
 
 if not OPENAPI_KEY:
     st.error("❌ La chiave API non è stata caricata nei Secrets!")
-#else:
-    #st.write(f"✅ Chiave OpenAPI caricata")
+else:
+    st.write(f"✅ Chiave OpenAPI caricata")
 
 st.image("banner.png")
 #st.title("🏢 **Lead Generation CCIAA REALI**")
