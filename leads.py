@@ -38,7 +38,8 @@ def cerca_aziende_api(nome):
             
             if items:
                 df = pd.DataFrame(items)
-                # Mappiamo i nomi delle colonne per evitare KeyError
+                # Mappiamo i nomi delle colonne per evitare KeyError (usa quello che l'API ti passa davvero)
+                # Se i nomi sono diversi da questi, dovremmo vedere cosa c'è dentro df.columns
                 colonne_mappa = {
                     'companyName': 'denominazione',
                     'vatCode': 'piva',
@@ -49,7 +50,6 @@ def cerca_aziende_api(nome):
     except Exception as e:
         st.error(f"Errore: {e}")
     return pd.DataFrame()
-
 
 @st.cache_data(ttl=86400)
 def ottieni_dati_company(piva):
