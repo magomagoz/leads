@@ -12,7 +12,8 @@ if 'results' not in st.session_state:
 
 # Inserisci qui la tua chiave se non usi st.secrets
 if "OPENAPI_KEY" in st.secrets:
-    API_KEY = st.secrets["OPENAPI_KEY"]
+    api_key = st.secrets["OPENAPI_KEY"]
+
 #else:
     #st.error("⚠️ Chiave API non trovata nei Secrets! Configurala per continuare.")
     #st.stop() # Ferma l'esecuzione qui
