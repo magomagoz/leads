@@ -64,7 +64,7 @@ if st.button("🔎 CERCA CONTATTI E SOCIAL"):
                 st.write(f"**Partita IVA:** {piva_trovata}")
             with c2:
                 st.write(f"**Città/Sede:** {citta_trovata}")
-                st.write(f"**Sito Web:** {dominio}")
+                st.write(f"**Sito Web:** www.{dominio}")
             
             st.markdown("---")
 
