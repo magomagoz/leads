@@ -27,23 +27,20 @@ st.info("**Lead Generation** • Dati ufficiali Registro Imprese via OpenAPI.it 
 def cerca_aziende_api(nome):
     url = "https://company.openapi.com/IT-search"
     headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
+    # Aggiungiamo dataEnrichment se possibile, altrimenti l'API restituisce solo ID
     params = {"companyName": nome.strip(), "limit": 20}
     
     response = requests.get(url, headers=headers, params=params, timeout=15)
-    
     if response.status_code == 200:
         data = response.json()
         items = data if isinstance(data, list) else data.get("data", [])
         
         if items:
             df = pd.DataFrame(items)
-            # --- SPIA: STAMPIAMO LE COLONNE ---
-            st.write("DEBUG - Colonne disponibili nell'API:", df.columns.tolist())
-            st.write("DEBUG - Prime 2 righe:", df.head(2))
-            # ----------------------------------
+            # Se hai solo 'id', usiamo quello come nome temporaneo
+            if 'denominazione' not in df.columns:
+                df['denominazione'] = "Azienda ID: " + df['id'].astype(str)
             return df
-    else:
-        st.error(f"Errore {response.status_code}: {response.text}")
     return pd.DataFrame()
 
 @st.cache_data(ttl=86400)
