@@ -71,16 +71,16 @@ query_input = st.text_input("🔍 **Nome azienda da cercare**",
                                 value=st.session_state.query,
                                 placeholder="Es: Mario Rossi Srl...")
     
-    col_btn1, col_btn2 = st.columns(2)
-    with col_btn1:
-        if st.button("🔎 AVVIA RICERCA", type="primary", use_container_width=True):
-            st.session_state.query = query_input
-            st.session_state.results = cerca_aziende_api(query_input)
-    with col_btn2:
-        if st.button("🗑️ RESET", use_container_width=True):
-            st.session_state.query = ""
-            st.session_state.results = None
-            st.rerun()
+col_btn1, col_btn2 = st.columns(2)
+with col_btn1:
+    if st.button("🔎 AVVIA RICERCA", type="primary", use_container_width=True):
+        st.session_state.query = query_input
+        st.session_state.results = cerca_aziende_api(query_input)
+with col_btn2:
+    if st.button("🗑️ RESET", use_container_width=True):
+        st.session_state.query = ""
+        st.session_state.results = None
+        st.rerun()
 
 st.markdown("---")
 
