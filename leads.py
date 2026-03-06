@@ -25,74 +25,44 @@ st.info("**Lead Generation** • Dati ufficiali Registro Imprese via OpenAPI.it 
 
 @st.cache_data(ttl=3600)
 def cerca_aziende_api(nome):
-    """Fase 1: Ricerca V2 semplificata"""
     url = "https://company.openapi.com/IT-search"
     headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
-    params = {
-        "companyName": nome.strip(),
-        # RIMUOVI o commenta la riga dataEnrichment:
-        # "dataEnrichment": "Name", 
-        "limit": 20
-    }
+    params = {"companyName": nome.strip(), "limit": 20}
+    
     try:
         response = requests.get(url, headers=headers, params=params, timeout=15)
         if response.status_code == 200:
             data = response.json()
-            # Estrazione sicura per la V2
-            items = data.get("data", data) if isinstance(data, dict) else data
+            # Se la risposta è una lista, usiamola direttamente
+            items = data if isinstance(data, list) else data.get("data", [])
             
-            if isinstance(items, list) and len(items) > 0:
+            if items:
                 df = pd.DataFrame(items)
-                
-                # Rinominiamo le nuove colonne V2 per farle leggere alla tua interfaccia
-                if 'companyName' in df.columns: df.rename(columns={'companyName': 'denominazione'}, inplace=True)
-                if 'vatCode' in df.columns: df.rename(columns={'vatCode': 'piva'}, inplace=True)
-                if 'taxCode' in df.columns and 'piva' not in df.columns: df.rename(columns={'taxCode': 'piva'}, inplace=True)
-                
-                # Gestione della città (nella V2 l'indirizzo arriva strutturato)
-                if 'address' in df.columns:
-                    df['comune'] = df['address'].apply(lambda x: x.get('city', 'N/D') if isinstance(x, dict) else 'N/D')
-                else:
-                    df['comune'] = 'N/D'
-                    
+                # Mappiamo i nomi delle colonne per evitare KeyError
+                colonne_mappa = {
+                    'companyName': 'denominazione',
+                    'vatCode': 'piva',
+                    'taxCode': 'piva'
+                }
+                df.rename(columns=colonne_mappa, inplace=True)
                 return df
-        else:
-            st.error(f"Errore API {response.status_code}: {response.text}")
     except Exception as e:
-        st.error(f"Errore connessione: {e}")
+        st.error(f"Errore: {e}")
     return pd.DataFrame()
+
 
 @st.cache_data(ttl=86400)
 def ottieni_dati_company(piva):
-    """Fase 2: Recupero dati profondi V2 (IT-advanced)"""
     url = f"https://company.openapi.com/IT-advanced/{piva}"
     headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
-    try:
-        response = requests.get(url, headers=headers, timeout=15)
-        if response.status_code == 200:
-            data = response.json()
-            info = data.get("data", data) if isinstance(data, dict) else data
-            
-            # Traduciamo i nuovi campi in inglese della V2 nell'italiano della tua UI
-            return {
-                "denominazione": info.get("companyName", "N/D"),
-                "piva": info.get("vatCode", info.get("taxCode", "N/D")),
-                "codice_fiscale": info.get("taxCode", "N/D"),
-                "pec": info.get("pec", "Non disponibile"),
-                "fatturato": info.get("revenue", "N/D"),
-                "numero_dipendenti": info.get("employees", "N/D"),
-                "stato_attivita": info.get("businessStatus", info.get("companyStatus", "N/D")),
-                "indirizzo": info.get("address", {}).get("streetName", "N/D") if isinstance(info.get("address"), dict) else info.get("address", "N/D"),
-                "cap": info.get("address", {}).get("zipCode", "") if isinstance(info.get("address"), dict) else "",
-                "comune": info.get("address", {}).get("city", "") if isinstance(info.get("address"), dict) else "",
-                "codice_ateco": info.get("ateco", {}).get("code", "N/D") if isinstance(info.get("ateco"), dict) else info.get("ateco", "N/D"),
-                "data_costituzione": info.get("registrationDate", "N/D")
-            }
-        else:
-            st.error(f"Errore Company API {response.status_code}: {response.text}")
-    except Exception as e:
-        st.error(f"Errore connessione Company: {e}")
-    return None
+    response = requests.get(url, headers=headers, timeout=15)
+    if response.status_code == 200:
+        raw_data = response.json()
+        # Gestione: se è una lista, prendiamo il primo elemento
+        data = raw_data[0] if isinstance(raw_data, list) else raw_data.get("data", raw_data)
+        return data if isinstance(data, dict) else {}
+    return {}
+
 
 # --- INTERFACCIA UTENTE ---
 
