@@ -6,7 +6,8 @@ import re
 
 # --- CONFIGURAZIONE ---
 st.set_page_config(layout="wide", page_title="Lead Gen Hunter")
-st.title("🚀 Lead Generation Avanzata")
+st.image("banner.png")
+#st.title("🚀 Lead Generation Avanzata")
 st.info("**Powered by Hunter.io & Web Scraping**")
 
 # --- RECUPERO CHIAVE ---
@@ -80,11 +81,15 @@ if st.button("🔎 CERCA CONTATTI E SOCIAL"):
                         "Email": e.get('value', 'N/D'),
                         "LinkedIn": e.get('linkedin', 'N/D')
                     })
+                
+                # Crea il DataFrame
                 df = pd.DataFrame(lista)
+                
+                # --- MODIFICA QUI: Sposta l'indice in avanti di 1 ---
+                df.index = df.index + 1 
+                # ---------------------------------------------------
+                
                 st.dataframe(df, use_container_width=True, 
                              column_config={"LinkedIn": st.column_config.LinkColumn()})
             else:
                 st.warning("Nessun contatto trovato.")
-
-        except Exception as e:
-            st.error(f"Errore tecnico: {e}")
