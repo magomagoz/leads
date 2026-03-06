@@ -55,16 +55,24 @@ if st.button("🔎 CERCA CONTATTI E SOCIAL"):
                     except:
                         pass
 
-                    # 3. VISUALIZZAZIONE INFO AZIENDA (con LOGO)
+                    # --- SEZIONE VISUALIZZAZIONE LOGO E INFO ---
                     st.markdown("---")
                     col_logo, col_info = st.columns([1, 4])
                     
                     with col_logo:
-                        # API gratuita Clearbit per il logo
-                        logo_url = f"https://logo.clearbit.com/{dominio_pulito}"
-                        st.image(logo_url, width=150)
+                        # Pulizia ulteriore per l'URL del logo
+                        logo_url = f"https://logo.clearbit.com/{dom}?size=200"
+                        try:
+                            # Verifichiamo se il logo è disponibile
+                            check_logo = requests.get(logo_url, timeout=5)
+                            if check_logo.status_code == 200:
+                                st.image(logo_url, width=150)
+                            else:
+                                st.markdown("### 🏢") # Mostra un'icona se il logo manca
+                        except:
+                            st.markdown("### 🏢")
                     
-                    with col_info:
+                    st.markdown("---")
                         st.subheader(f"🏢 Informazioni aziendali")
                         c1, c2 = st.columns(2)
                         with c1:
