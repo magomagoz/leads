@@ -67,9 +67,7 @@ def ottieni_dati_company(piva):
 # --- INTERFACCIA UTENTE ---
 
 # 🔍 CAMPO DI RICERCA
-col_search_1, col_search_2, col_search_3 = st.columns([1, 4, 1])
-with col_search_2:
-    query_input = st.text_input("🔍 **Nome azienda da cercare**", 
+query_input = st.text_input("🔍 **Nome azienda da cercare**", 
                                 value=st.session_state.query,
                                 placeholder="Es: Mario Rossi Srl...")
     
