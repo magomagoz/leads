@@ -31,7 +31,8 @@ st.info("**Lead Generation** • Dati ufficiali Registro Imprese via OpenAPI.it"
 
 @st.cache_data(ttl=3600)
 def cerca_aziende_api(nome):
-    """Fase 1: Autocomplete per trovare la P.IVA (Basso costo)"""
+    """Fase 1: Autocomplete per trovare la P.IVA"""
+    # L'endpoint corretto per la ricerca è /autocomplete
     url = "https://imprese.openapi.it/autocomplete"
     headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
     params = {
@@ -40,36 +41,31 @@ def cerca_aziende_api(nome):
         "limit": 20
     }
     try:
-        #response = requests.get(url, headers=headers, params=params, timeout=15)
-
-        response = requests.post(search_url, json=payload, headers=headers)
-        st.write(response.json()) # <--- AGGIUNGI QUESTO
-
+        # Nota: per autocomplete si usa GET, non POST
+        response = requests.get(url, headers=headers, params=params, timeout=15)
         
         if response.status_code == 200:
             data = response.json()
-            if data.get("success") and data.get("results"):
-                return pd.DataFrame(data["results"])
-        st.error(f"Errore Ricerca: {response.text}")
+            # Verifica la struttura della risposta di openapi.it
+            if data and isinstance(data, list):
+                return pd.DataFrame(data)
+        else:
+            st.error(f"Errore API: {response.status_code} - {response.text}")
     except Exception as e:
         st.error(f"Errore connessione: {e}")
     return pd.DataFrame()
 
 @st.cache_data(ttl=86400)
 def ottieni_dati_company(piva):
-    """Fase 2: Recupero dati profondi (Servizio COMPANY - Consuma crediti)"""
-    # Usiamo l'endpoint 'base' o 'advance' a seconda del tuo piano Company
+    """Fase 2: Recupero dati profondi"""
+    # L'endpoint corretto per il dettaglio è /base/{piva}
     url = f"https://imprese.openapi.it/base/{piva}"
     headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
     try:
         response = requests.get(url, headers=headers, timeout=15)
-
-        response = requests.post(search_url, json=payload, headers=headers)
-        st.write(response.json()) # <--- AGGIUNGI QUESTO
-
         
         if response.status_code == 200:
-            return response.json().get("data", {})
+            return response.json()
         else:
             st.error(f"Errore Company API: {response.status_code}")
     except Exception as e:
