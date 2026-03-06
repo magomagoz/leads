@@ -15,7 +15,8 @@ except:
     st.stop()
 
 # --- HEADER APP ---
-st.title("🚀 Lead Generation Avanzata")
+st.image("banner.png")
+#st.title("🚀 Lead Generation Avanzata")
 st.info("**Powered by Hunter.io & Web Scraping**")
 
 dominio_input = st.text_input("🌐 Inserisci il dominio dell'azienda (es: acea.it, ferrari.com)")
