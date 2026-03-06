@@ -73,14 +73,14 @@ if st.button("🔎 CERCA CONTATTI E SOCIAL"):
                             st.markdown("### 🏢")
                     
                     st.markdown("---")
-                        st.subheader(f"🏢 Informazioni aziendali")
-                        c1, c2 = st.columns(2)
-                        with c1:
-                            st.write(f"**Ragione sociale:** {ragione_sociale}")
-                            st.write(f"**Partita IVA:** {piva_trovata}")
-                        with c2:
-                            st.write(f"**Città/Sede:** {citta_trovata}")
-                            st.write(f"**Sito Web:** [www.{dominio_pulito}](https://{dominio_pulito})")
+                    st.subheader(f"🏢 Informazioni aziendali")
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.write(f"**Ragione sociale:** {ragione_sociale}")
+                        st.write(f"**Partita IVA:** {piva_trovata}")
+                    with c2:
+                        st.write(f"**Città/Sede:** {citta_trovata}")
+                        st.write(f"**Sito Web:** [www.{dominio_pulito}](https://{dominio_pulito})")
                     
                     st.markdown("---")
 
