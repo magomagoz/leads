@@ -34,58 +34,56 @@ with col_btn2:
 
 st.markdown("---")
 
-# Sostituisci il blocco della ricerca con questo:
-if btn_cerca and dominio_input:
-    with st.spinner(f"Ricerca contatti su Hunter.io per {dominio_input}..."):
-        # Endpoint di Hunter.io
-        url = f"https://api.hunter.io/v2/domain-search?domain={dominio_input.strip()}&api_key={HUNTER_API_KEY}"
+if st.button("🔎 CERCA CONTATTI"):
+    with st.spinner("Interrogazione database Hunter..."):
+        url = f"https://api.hunter.io/v2/domain-search?domain={dominio.strip()}&api_key={HUNTER_API_KEY}"
         
         try:
             response = requests.get(url, timeout=15)
+            # Definiamo dati_risposta subito dopo la chiamata
+            dati_risposta = response.json() 
             
             if response.status_code == 200:
-                dati = dati_risposta.get("data", {})
-                emails = dati.get("emails", [])
+                data = dati_risposta.get("data", {})
                 
-                # --- NUOVA SEZIONE: DATI AZIENDA ---
+                # --- SEZIONE INFO AZIENDA ---
                 st.subheader("🏢 Informazioni Aziendali")
                 col1, col2 = st.columns(2)
                 
-                # Estraiamo i dati dell'organizzazione
-                nome_azienda = dati.get("organization", "N/D")
-                sito_web = dati.get("domain", "N/D")
-                # Hunter spesso non dà l'indirizzo esatto per motivi di privacy, 
-                # ma se disponibile nel JSON, lo aggiungiamo qui
+                # Estraiamo i dati dall'oggetto 'organization' fornito da Hunter
+                org = data.get("organization", "Non disponibile")
+                dom = data.get("domain", dominio)
                 
                 with col1:
-                    st.write(f"**Ragione Sociale:** {nome_azienda}")
-                    st.write(f"**Sito Web:** {sito_web}")
+                    st.write(f"**Ragione Sociale:** {org}")
+                    st.write(f"**Dominio:** {dom}")
                 with col2:
-                    st.write(f"**Dominio:** {sito_web}")
-                    st.write("*(Nota: i dati camerali sono limitati da Hunter per policy privacy)*")
+                    st.write(f"**Paese:** {data.get('country', 'N/D')}")
+                    st.write(f"**Settore:** {data.get('industry', 'N/D')}")
                 
                 st.markdown("---")
-                # -----------------------------------
-
+                
+                # --- SEZIONE CONTATTI ---
+                emails = data.get("emails", [])
                 if emails:
                     st.subheader(f"👥 Persone trovate ({len(emails)})")
-                    st.success(f"✅ Trovati {len(emails)} profili!")
-                    
-                    # Estraiamo i dati
                     lista_contatti = []
                     for e in emails:
                         lista_contatti.append({
                             "Nome": f"{e.get('first_name', '')} {e.get('last_name', '')}",
-                            "Posizione": e.get('position', 'N/D'),
+                            "Ruolo": e.get('position', 'N/D'),
                             "Email": e.get('value', 'N/D'),
-                            "LinkedIn": e.get('linkedin', 'N/D') # Link diretto!
+                            "LinkedIn": e.get('linkedin', 'N/D')
                         })
                     
                     df = pd.DataFrame(lista_contatti)
-                    st.dataframe(df, use_container_width=True)
+                    st.dataframe(df, use_container_width=True, column_config={"LinkedIn": st.column_config.LinkColumn()})
                 else:
                     st.warning("Nessun contatto pubblico trovato per questo dominio.")
             else:
-                st.error("Errore Hunter.io: Controlla la tua API Key o il dominio.")
+                # Gestione errori API Hunter
+                error_msg = dati_risposta.get("errors", [{}])[0].get("detail", "Errore sconosciuto")
+                st.error(f"Errore API Hunter: {error_msg}")
+                
         except Exception as e:
-            st.error(f"Errore: {e}")
+            st.error(f"Errore critico: {e}")
