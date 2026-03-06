@@ -32,25 +32,21 @@ st.info("**Lead Generation** • Dati ufficiali Registro Imprese via OpenAPI.it"
 @st.cache_data(ttl=3600)
 def cerca_aziende_api(nome):
     """Fase 1: Autocomplete per trovare la P.IVA"""
-    # L'endpoint corretto per la ricerca è /autocomplete
     url = "https://imprese.openapi.it/autocomplete"
+    # Assicurati che OPENAPI_KEY sia la stringa pura della tua chiave
     headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
     params = {
         "denominazione": nome.strip(),
-        "provincia": "RM,FR,LT,RI,VT", # Lazio
+        "provincia": "RM,FR,LT,RI,VT",
         "limit": 20
     }
     try:
-        # Nota: per autocomplete si usa GET, non POST
         response = requests.get(url, headers=headers, params=params, timeout=15)
-        
         if response.status_code == 200:
             data = response.json()
-            # Verifica la struttura della risposta di openapi.it
-            if data and isinstance(data, list):
-                return pd.DataFrame(data)
+            return pd.DataFrame(data) if data else pd.DataFrame()
         else:
-            st.error(f"Errore API: {response.status_code} - {response.text}")
+            st.error(f"Errore API {response.status_code}: {response.text}")
     except Exception as e:
         st.error(f"Errore connessione: {e}")
     return pd.DataFrame()
@@ -58,19 +54,18 @@ def cerca_aziende_api(nome):
 @st.cache_data(ttl=86400)
 def ottieni_dati_company(piva):
     """Fase 2: Recupero dati profondi"""
-    # L'endpoint corretto per il dettaglio è /base/{piva}
     url = f"https://imprese.openapi.it/base/{piva}"
     headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
     try:
         response = requests.get(url, headers=headers, timeout=15)
-        
         if response.status_code == 200:
             return response.json()
         else:
-            st.error(f"Errore Company API: {response.status_code}")
+            st.error(f"Errore Company API {response.status_code}: {response.text}")
     except Exception as e:
         st.error(f"Errore connessione Company: {e}")
     return None
+
 
 # --- INTERFACCIA UTENTE ---
 
