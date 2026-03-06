@@ -4,95 +4,99 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import re
 
-# --- CONFIGURAZIONE ---
+# --- CONFIGURAZIONE PAGINA ---
 st.set_page_config(layout="wide", page_title="Lead Gen Hunter")
-st.image("banner.png")
-#st.title("🚀 Lead Generation Avanzata")
-st.info("**Powered by Hunter.io & Web Scraping**")
 
-# --- RECUPERO CHIAVE ---
+# --- RECUPERO CHIAVE SICURO ---
 try:
     HUNTER_API_KEY = st.secrets["HUNTER_API_KEY"]
 except:
     st.error("❌ Errore: HUNTER_API_KEY non trovata nei secrets!")
     st.stop()
 
-dominio = st.text_input("🌐 Inserisci il dominio (es: acea.it)")
+# --- HEADER APP ---
+st.title("🚀 Lead Generation Avanzata")
+st.info("**Powered by Hunter.io & Web Scraping**")
+
+dominio_input = st.text_input("🌐 Inserisci il dominio dell'azienda (es: acea.it, ferrari.com)")
 
 if st.button("🔎 CERCA CONTATTI E SOCIAL"):
-    with st.spinner("Interrogazione database e scansione sito in corso..."):
-        try:
-            # 1. Chiamata Hunter.io
-            url_hunter = f"https://api.hunter.io/v2/domain-search?domain={dominio.strip()}&api_key={HUNTER_API_KEY}"
-            res = requests.get(url_hunter, timeout=15)
-            data = res.json().get("data", {})
-            
-            # 2. Dati base
-            ragione_sociale = data.get('organization', 'Non trovata')
-            piva_trovata = data.get('vat', 'Non disponibile su Hunter')
-            citta_trovata = data.get('city', 'Non disponibile su Hunter')
-            
-            # 3. SCRAPING AVANZATO (P.IVA e LOCALITÀ)
+    if not dominio_input:
+        st.warning("Inserisci un dominio valido prima di cercare.")
+    else:
+        with st.spinner("Analisi database e scansione sito in corso..."):
             try:
-                url_sito = f"https://{dominio.strip()}"
-                response_web = requests.get(url_sito, timeout=10)
-                soup = BeautifulSoup(response_web.text, 'html.parser')
-                testo_sito = soup.get_text()
-
-                # Ricerca Partita IVA con Regex (formato italiano 11 cifre)
-                if piva_trovata == 'Non disponibile su Hunter':
-                    match_piva = re.search(r'\b\d{11}\b', testo_sito)
-                    if match_piva:
-                        piva_trovata = match_piva.group(0)
+                # 1. Chiamata Hunter.io
+                dominio_pulito = dominio_input.strip().lower().replace("https://", "").replace("http://", "").replace("www.", "")
+                url_hunter = f"https://api.hunter.io/v2/domain-search?domain={dominio_pulito}&api_key={HUNTER_API_KEY}"
+                res = requests.get(url_hunter, timeout=15)
+                dati_risposta = res.json()
+                data = dati_risposta.get("data", {})
                 
-                # Ricerca Città (cerchiamo CAP + Città o parole chiave)
-                if citta_trovata == 'Non disponibile su Hunter':
-                    # Cerca pattern comuni come "00100 Roma" o "Sede: Milano"
-                    match_citta = re.search(r'\d{5}\s+([A-Z][a-z]+)', testo_sito)
-                    if match_citta:
-                        citta_trovata = match_citta.group(1)
-                    elif "Sede legale:" in testo_sito:
-                        # Estrae un po' di testo dopo la parola chiave
-                        citta_trovata = testo_sito.split("Sede legale:")[1][:30].strip()
-            except:
-                pass
+                if res.status_code == 200:
+                    # 2. Dati base e Scraping di emergenza
+                    ragione_sociale = data.get('organization', 'Non trovata')
+                    piva_trovata = data.get('vat', 'Non disponibile su Hunter')
+                    citta_trovata = data.get('city', 'Non disponibile su Hunter')
+                    
+                    try:
+                        url_sito = f"https://{dominio_pulito}"
+                        response_web = requests.get(url_sito, timeout=8)
+                        soup = BeautifulSoup(response_web.text, 'html.parser')
+                        testo_sito = soup.get_text()
 
-            # 4. VISUALIZZAZIONE INFO AZIENDA
-            st.subheader("🏢 Informazioni Aziendali")
-            c1, c2 = st.columns(2)
-            with c1:
-                st.write(f"**Ragione Sociale:** {ragione_sociale}")
-                st.write(f"**Partita IVA:** {piva_trovata}")
-            with c2:
-                st.write(f"**Città/Sede:** {citta_trovata}")
-                st.write(f"**Sito Web:** www.{dominio}")
+                        if piva_trovata == 'Non disponibile su Hunter':
+                            match_piva = re.search(r'\b\d{11}\b', testo_sito)
+                            if match_piva: piva_trovata = match_piva.group(0)
+                        
+                        if citta_trovata == 'Non disponibile su Hunter':
+                            match_citta = re.search(r'\d{5}\s+([A-Z][a-z]+)', testo_sito)
+                            if match_citta: citta_trovata = match_citta.group(1)
+                    except:
+                        pass
+
+                    # 3. VISUALIZZAZIONE INFO AZIENDA (con LOGO)
+                    st.markdown("---")
+                    col_logo, col_info = st.columns([1, 4])
+                    
+                    with col_logo:
+                        # API gratuita Clearbit per il logo
+                        logo_url = f"https://logo.clearbit.com/{dominio_pulito}"
+                        st.image(logo_url, width=150)
+                    
+                    with col_info:
+                        st.subheader(f"🏢 {ragione_sociale}")
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            st.write(f"**Partita IVA:** {piva_trovata}")
+                        with c2:
+                            st.write(f"**Città/Sede:** {citta_trovata}")
+                            st.write(f"**Sito Web:** [www.{dominio_pulito}](https://{dominio_pulito})")
+                    
+                    st.markdown("---")
+
+                    # 4. TABELLA PERSONE (Indice da 1)
+                    emails = data.get("emails", [])
+                    if emails:
+                        st.subheader(f"👥 Persone trovate ({len(emails)})")
+                        lista = []
+                        for e in emails:
+                            lista.append({
+                                "Nome": f"{e.get('first_name', '')} {e.get('last_name', '')}".strip() or "N/D",
+                                "Ruolo": e.get('position', 'N/D'),
+                                "Email": e.get('value', 'N/D'),
+                                "LinkedIn": e.get('linkedin', 'N/D')
+                            })
+                        
+                        df = pd.DataFrame(lista)
+                        df.index = df.index + 1 # Numerazione da 1
+                        
+                        st.dataframe(df, use_container_width=True, 
+                                     column_config={"LinkedIn": st.column_config.LinkColumn()})
+                    else:
+                        st.warning("Nessun contatto trovato nel database Hunter.")
+                else:
+                    st.error(f"Errore API Hunter: {dati_risposta.get('errors', [{}])[0].get('detail', 'Errore sconosciuto')}")
             
-            st.markdown("---")
-
-            # 5. TABELLA PERSONE
-            emails = data.get("emails", [])
-            if emails:
-                st.subheader(f"👥 Persone trovate ({len(emails)})")
-                lista = []
-                for e in emails:
-                    lista.append({
-                        "Nome": f"{e.get('first_name', '')} {e.get('last_name', '')}",
-                        "Ruolo": e.get('position', 'N/D'),
-                        "Email": e.get('value', 'N/D'),
-                        "LinkedIn": e.get('linkedin', 'N/D')
-                    })
-                
-                # Crea il DataFrame
-                df = pd.DataFrame(lista)
-                
-                # --- MODIFICA QUI: Sposta l'indice in avanti di 1 ---
-                df.index = df.index + 1 
-                # ---------------------------------------------------
-                
-                st.dataframe(df, use_container_width=True, column_config={"LinkedIn": st.column_config.LinkColumn()})
-            else:
-                st.warning("Nessun contatto trovato.")
-        
-        except Exception as e:
-            st.error(f"Errore tecnico durante la ricerca: {e}")
-
+            except Exception as e:
+                st.error(f"Errore critico: {e}")
