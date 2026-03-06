@@ -20,7 +20,8 @@ st.info("**Powered by Hunter.io & Web Scraping**")
 
 dominio_input = st.text_input("🌐 Inserisci il dominio dell'azienda (es: acea.it, ferrari.com)")
 
-if st.button("🔎 CERCA CONTATTI E SOCIAL"):
+# Pulsante con stile "Primary" (solitamente rosso/arancio nel tema Streamlit)
+if st.button("🔎 CERCA CONTATTI E SOCIAL", type="primary"):
     if not dominio_input:
         st.warning("Inserisci un dominio valido prima di cercare.")
     else:
@@ -60,27 +61,25 @@ if st.button("🔎 CERCA CONTATTI E SOCIAL"):
                     col_logo, col_info = st.columns([1, 4])
                     
                     with col_logo:
-                        # Pulizia ulteriore per l'URL del logo
-                        logo_url = f"https://logo.clearbit.com/{dom}?size=200"
+                        # FIX: Usiamo 'dominio_pulito' invece di 'dom'
+                        logo_url = f"https://logo.clearbit.com/{dominio_pulito}?size=200"
                         try:
-                            # Verifichiamo se il logo è disponibile
                             check_logo = requests.get(logo_url, timeout=5)
                             if check_logo.status_code == 200:
                                 st.image(logo_url, width=150)
                             else:
-                                st.markdown("### 🏢") # Mostra un'icona se il logo manca
+                                st.markdown("### 🏢") 
                         except:
                             st.markdown("### 🏢")
                     
-                    st.markdown("---")
-                    st.subheader(f"🏢 Informazioni aziendali")
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        st.write(f"**Ragione sociale:** {ragione_sociale}")
-                        st.write(f"**Partita IVA:** {piva_trovata}")
-                    with c2:
-                        st.write(f"**Città/Sede:** {citta_trovata}")
-                        st.write(f"**Sito Web:** [www.{dominio_pulito}](https://{dominio_pulito})")
+                    with col_info:
+                        st.subheader(f"🏢 {ragione_sociale}")
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            st.write(f"**Partita IVA:** {piva_trovata}")
+                        with c2:
+                            st.write(f"**Città/Sede:** {citta_trovata}")
+                            st.write(f"**Sito Web:** [www.{dominio_pulito}](https://{dominio_pulito})")
                     
                     st.markdown("---")
 
@@ -98,7 +97,7 @@ if st.button("🔎 CERCA CONTATTI E SOCIAL"):
                             })
                         
                         df = pd.DataFrame(lista)
-                        df.index = df.index + 1 # Numerazione da 1
+                        df.index = df.index + 1 
                         
                         st.dataframe(df, use_container_width=True, 
                                      column_config={"LinkedIn": st.column_config.LinkColumn()})
