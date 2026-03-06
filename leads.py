@@ -116,15 +116,15 @@ if st.button("🔎 AVVIA RICERCA SMART", type="primary"):
                             "LinkedIn": e.get('linkedin', 'N/D')
                         })
                         
-                        df = pd.DataFrame(lista)
-                        df.index = df.index + 1 
+                    df = pd.DataFrame(lista)
+                    df.index = df.index + 1 
                         
-                        st.dataframe(df, use_container_width=True, 
+                    st.dataframe(df, use_container_width=True, 
                                      column_config={"LinkedIn": st.column_config.LinkColumn()})
-                    else:
-                        st.warning("Nessun contatto trovato nel database Hunter.")
                 else:
-                    st.error(f"Errore API Hunter: {dati_risposta.get('errors', [{}])[0].get('detail', 'Errore sconosciuto')}")
+                    st.warning("Nessun contatto trovato nel database Hunter.")
+            else:
+                st.error(f"Errore API Hunter: {dati_risposta.get('errors', [{}])[0].get('detail', 'Errore sconosciuto')}")
             
-            except Exception as e:
-                st.error(f"Errore critico: {e}")
+        except Exception as e:
+            st.error(f"Errore critico: {e}")
