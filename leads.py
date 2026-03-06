@@ -41,7 +41,7 @@ if st.button("🔎 CERCA CONTATTI"):
                 col1, col2 = st.columns(2)
                 with col1:
                     st.write(f"**Ragione Sociale:** {data.get('organization', 'N/D')}")
-                    st.write(f"**Sito Web:** {data.get('domain', dominio)}")
+                    st.write(f"**Sito Web:** www.{data.get('domain', dominio)}")
                 with col2:
                     # Hunter a volte espone 'vat' (Partita IVA) e 'city' (Città) 
                     # a seconda della disponibilità nel database
