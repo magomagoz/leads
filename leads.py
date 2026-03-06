@@ -65,14 +65,15 @@ if st.button("🔎 CERCA CONTATTI E SOCIAL"):
                         st.image(logo_url, width=150)
                     
                     with col_info:
-                        st.subheader(f"🏢 {ragione_sociale}")
+                        st.subheader("🏢 Informazioni Aziendali")
                         c1, c2 = st.columns(2)
                         with c1:
+                            st.write(f"**Ragione Sociale:** {ragione_sociale}")
                             st.write(f"**Partita IVA:** {piva_trovata}")
                         with c2:
                             st.write(f"**Città/Sede:** {citta_trovata}")
-                            st.write(f"**Sito Web:** [www.{dominio_pulito}](https://{dominio_pulito})")
-                    
+                            st.write(f"**Sito Web:** {dominio}")
+                        
                     st.markdown("---")
 
                     # 4. TABELLA PERSONE (Indice da 1)
