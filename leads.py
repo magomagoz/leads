@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import pandas as pd
+from bs4 import BeautifulSoup # Importante per leggere il web
 
 # --- CONFIGURAZIONE PAGINA ---
 st.set_page_config(layout="wide", page_title="Lead Gen Hunter")
@@ -23,32 +24,44 @@ except:
 
 dominio = st.text_input("🌐 Inserisci il dominio (es: acea.it)")
 
-if st.button("🔎 CERCA CONTATTI"):
-    with st.spinner("Interrogazione database Hunter..."):
-        # URL corretto e sicuro
-        url = f"https://api.hunter.io/v2/domain-search?domain={dominio.strip()}&api_key={HUNTER_API_KEY}"
+if st.button("🔎 CERCA CONTATTI E SOCIAL"):
+    with st.spinner("Interrogazione in corso..."):
+        # 1. Chiamata Hunter
+        url_hunter = f"https://api.hunter.io/v2/domain-search?domain={dominio.strip()}&api_key={HUNTER_API_KEY}"
+        response = requests.get(url_hunter, timeout=15)
+        dati_risposta = response.json()
+        data = dati_risposta.get("data", {})
         
-        try:
-            response = requests.get(url, timeout=15)
-            # Salviamo la risposta JSON in una variabile definita nel blocco corrente
-            dati_risposta = response.json()
-            
-            if response.status_code == 200:
-                data = dati_risposta.get("data", {})
+        # 2. Estrazione dati (con fallback per P.IVA/Città)
+        ragione_sociale = data.get('organization', 'Non trovata')
+        piva_trovata = data.get('vat', 'Non disponibile su Hunter')
+        citta_trovata = data.get('city', 'Non disponibile su Hunter')
+        
+        # 3. SCRAPING DI EMERGENZA (Se mancano i dati)
+        if piva_trovata == 'Non disponibile su Hunter' or citta_trovata == 'Non disponibile su Hunter':
+            try:
+                # Tentiamo di leggere la home page
+                url_sito = f"https://{dominio.strip()}"
+                html = requests.get(url_sito, timeout=5).text
+                soup = BeautifulSoup(html, 'html.parser')
+                testo_sito = soup.get_text()
                 
-                # --- INFO AZIENDA (Aggiornate) ---
-                st.subheader("🏢 Informazioni Aziendali")
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.write(f"**Ragione Sociale:** {data.get('organization', 'N/D')}")
-                    st.write(f"**Sito Web:** www.{data.get('domain', dominio)}")
-                with col2:
-                    # Hunter a volte espone 'vat' (Partita IVA) e 'city' (Città) 
-                    # a seconda della disponibilità nel database
-                    st.write(f"**Partita IVA:** {data.get('vat', 'Non disponibile')}")
-                    st.write(f"**Città:** {data.get('city', 'Non disponibile')}")
-                
-                st.markdown("---")
+                # Semplice logica di ricerca nel testo
+                if "P.IVA" in testo_sito or "Partita IVA" in testo_sito:
+                    piva_trovata = "Trovata nel sito - Controlla footer"
+                if "Sede:" in testo_sito:
+                    citta_trovata = "Vedi sito web"
+            except:
+                pass
+
+        # Visualizzazione risultati
+        st.subheader("🏢 Informazioni Aziendali")
+        col1, col2 = st.columns(2)
+        col1.write(f"**Ragione Sociale:** {ragione_sociale}")
+        col1.write(f"**Partita IVA:** {piva_trovata}")
+        col2.write(f"**Città:** {citta_trovata}")
+        
+        st.markdown("---")
                 
                 # --- PERSONE ---
                 emails = data.get("emails", [])
