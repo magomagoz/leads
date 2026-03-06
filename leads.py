@@ -42,11 +42,33 @@ if btn_cerca and dominio_input:
         
         try:
             response = requests.get(url, timeout=15)
+            
             if response.status_code == 200:
-                dati = response.json().get("data", {})
+                dati = dati_risposta.get("data", {})
                 emails = dati.get("emails", [])
                 
+                # --- NUOVA SEZIONE: DATI AZIENDA ---
+                st.subheader("🏢 Informazioni Aziendali")
+                col1, col2 = st.columns(2)
+                
+                # Estraiamo i dati dell'organizzazione
+                nome_azienda = dati.get("organization", "N/D")
+                sito_web = dati.get("domain", "N/D")
+                # Hunter spesso non dà l'indirizzo esatto per motivi di privacy, 
+                # ma se disponibile nel JSON, lo aggiungiamo qui
+                
+                with col1:
+                    st.write(f"**Ragione Sociale:** {nome_azienda}")
+                    st.write(f"**Sito Web:** {sito_web}")
+                with col2:
+                    st.write(f"**Dominio:** {sito_web}")
+                    st.write("*(Nota: i dati camerali sono limitati da Hunter per policy privacy)*")
+                
+                st.markdown("---")
+                # -----------------------------------
+
                 if emails:
+                    st.subheader(f"👥 Persone trovate ({len(emails)})")
                     st.success(f"✅ Trovati {len(emails)} profili!")
                     
                     # Estraiamo i dati
