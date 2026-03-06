@@ -116,7 +116,28 @@ st.markdown("---")
 if st.session_state.results is not None and not st.session_state.results.empty:
     df = st.session_state.results
     st.success(f"✅ Trovate {len(df)} potenziali aziende")
+
+    # ... (dopo st.success)
     
+    # Creiamo direttamente la lista usando la funzione sicura
+    nomi_aziende = []
+    for _, row in df.iterrows():
+        # Utilizziamo .get() per ogni campo, così se manca non va in crash
+        nome = row.get('denominazione') or row.get('companyName') or "Azienda Senza Nome"
+        comune = row.get('comune') or "N/D"
+        piva = row.get('piva') or row.get('vatCode') or row.get('id') or "N/D"
+        
+        # Aggiungiamo alla lista formattata
+        nomi_aziende.append(f"{nome} ({comune}) - {piva}")
+    
+    # Ora passiamo la lista pulita al selectbox
+    scelta = st.selectbox("🎯 **Seleziona l'azienda specifica:**", range(len(nomi_aziende)), format_func=lambda x: nomi_aziende[x])
+    
+    # Recuperiamo la PIVA in modo sicuro dall'indice scelto
+    piva_selezionata = df.iloc[scelta].get('piva') or df.iloc[scelta].get('vatCode') or df.iloc[scelta].get('id')
+    
+    # ... (continua con il bottone ESTRAI DATI)
+
     # Versione sicura per evitare KeyError
     def formatta_riga(row):
         nome = row.get('denominazione') or row.get('companyName') or "Azienda Senza Nome"
