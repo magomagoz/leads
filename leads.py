@@ -12,13 +12,13 @@ if 'results' not in st.session_state:
 
 # Inserisci qui la tua chiave se non usi st.secrets
 if "OPENAPI_KEY" in st.secrets:
-    api_key = st.secrets["OPENAPI_KEY"]
+    OPENAPI_KEY = st.secrets["OPENAPI_KEY"]
 
 #else:
     #st.error("⚠️ Chiave API non trovata nei Secrets! Configurala per continuare.")
     #st.stop() # Ferma l'esecuzione qui
 
-if not API_KEY:
+if not OPENAPI_KEY:
     st.error("❌ La chiave API non è stata caricata nei Secrets!")
 #else:
     #st.write(f"✅ Chiave OpenAPI caricata")
@@ -33,7 +33,7 @@ st.info("**Lead Generation** • Dati ufficiali Registro Imprese via OpenAPI.it"
 def cerca_aziende_api(nome):
     """Fase 1: Autocomplete per trovare la P.IVA (Basso costo)"""
     url = "https://imprese.openapi.it/autocomplete"
-    headers = {"Authorization": f"Bearer {API_KEY}"}
+    headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
     params = {
         "denominazione": nome.strip(),
         "provincia": "RM,FR,LT,RI,VT", # Lazio
@@ -55,7 +55,7 @@ def ottieni_dati_company(piva):
     """Fase 2: Recupero dati profondi (Servizio COMPANY - Consuma crediti)"""
     # Usiamo l'endpoint 'base' o 'advance' a seconda del tuo piano Company
     url = f"https://imprese.openapi.it/base/{piva}"
-    headers = {"Authorization": f"Bearer {API_KEY}"}
+    headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
     try:
         response = requests.get(url, headers=headers, timeout=15)
         if response.status_code == 200:
