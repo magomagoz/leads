@@ -22,8 +22,9 @@ if not API_KEY:
 else:
     st.write(f"✅ Chiave caricata (inizia con: {API_KEY[:5]}...)")
 
-st.title("🏢 **Lead Generation CCIAA REALI**")
-st.info("**Servizio Company Attivo** • Dati ufficiali Registro Imprese via OpenAPI.it")
+st.image("banner.png")
+#st.title("🏢 **Lead Generation CCIAA REALI**")
+st.info("**Lead Generation** • Dati ufficiali Registro Imprese via OpenAPI.it")
 
 # --- FUNZIONI API ---
 
