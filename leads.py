@@ -141,10 +141,10 @@ if st.session_state.results is not None and not st.session_state.results.empty:
 elif st.session_state.query:
     st.warning("Nessun risultato trovato. Prova a cambiare i filtri o il nome.")
 
-st.sidebar.markdown("""
+#st.sidebar.markdown("""
 ### Istruzioni
-1. Inserisci il nome azienda.
-2. Clicca su **Cerca**.
-3. Seleziona l'azienda corretta dal menu a tendina.
-4. Clicca su **Estrai Dati** per consumare i crediti Company e vedere PEC e Fatturato.
-""")
+#1. Inserisci il nome azienda.
+#2. Clicca su **Cerca**.
+#3. Seleziona l'azienda corretta dal menu a tendina.
+#4. Clicca su **Estrai Dati** per consumare i crediti Company e vedere PEC e Fatturato.
+#""")
