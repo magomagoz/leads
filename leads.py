@@ -40,19 +40,22 @@ if btn_cerca and dominio_input:
         # Endpoint di Apollo per cercare persone all'interno di un dominio specifico
         url = "https://api.apollo.io/v1/mixed_people/search"
         
+        # ... (lascia invariato tutto il codice sopra)
+        
+        # Nuova configurazione degli Headers
         headers = {
             "Cache-Control": "no-cache",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "x-api-key": APOLLO_API_KEY  # LA CHIAVE VA QUI!
         }
         
-        # Parametri della richiesta
+        # Il corpo JSON ora NON deve più contenere la chiave API
         data = {
-            "api_key": APOLLO_API_KEY,
             "q_organization_domains": dominio_input.strip(),
             "page": 1,
-            "per_page": 15 # Numero di risultati da mostrare
+            "per_page": 15
         }
-        
+                
         try:
             response = requests.post(url, headers=headers, json=data, timeout=15)
             
