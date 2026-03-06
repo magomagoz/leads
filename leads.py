@@ -92,5 +92,7 @@ if st.button("🔎 CERCA CONTATTI E SOCIAL"):
                 st.dataframe(df, use_container_width=True, column_config={"LinkedIn": st.column_config.LinkColumn()})
             else:
                 st.warning("Nessun contatto trovato.")
-
+        
+        except Exception as e:
+            st.error(f"Errore tecnico durante la ricerca: {e}")
 
