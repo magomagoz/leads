@@ -29,26 +29,21 @@ def cerca_aziende_api(nome):
     headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
     params = {"companyName": nome.strip(), "limit": 20}
     
-    try:
-        response = requests.get(url, headers=headers, params=params, timeout=15)
-        if response.status_code == 200:
-            data = response.json()
-            # Se la risposta è una lista, usiamola direttamente
-            items = data if isinstance(data, list) else data.get("data", [])
-            
-            if items:
-                df = pd.DataFrame(items)
-                # Mappiamo i nomi delle colonne per evitare KeyError (usa quello che l'API ti passa davvero)
-                # Se i nomi sono diversi da questi, dovremmo vedere cosa c'è dentro df.columns
-                colonne_mappa = {
-                    'companyName': 'denominazione',
-                    'vatCode': 'piva',
-                    'taxCode': 'piva'
-                }
-                df.rename(columns=colonne_mappa, inplace=True)
-                return df
-    except Exception as e:
-        st.error(f"Errore: {e}")
+    response = requests.get(url, headers=headers, params=params, timeout=15)
+    
+    if response.status_code == 200:
+        data = response.json()
+        items = data if isinstance(data, list) else data.get("data", [])
+        
+        if items:
+            df = pd.DataFrame(items)
+            # --- SPIA: STAMPIAMO LE COLONNE ---
+            st.write("DEBUG - Colonne disponibili nell'API:", df.columns.tolist())
+            st.write("DEBUG - Prime 2 righe:", df.head(2))
+            # ----------------------------------
+            return df
+    else:
+        st.error(f"Errore {response.status_code}: {response.text}")
     return pd.DataFrame()
 
 @st.cache_data(ttl=86400)
