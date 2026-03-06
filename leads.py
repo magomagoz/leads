@@ -1,148 +1,108 @@
 import streamlit as st
-import pandas as pd
 import requests
+import pandas as pd
 
-# --- CONFIGURAZIONE E SESSION STATE ---
-st.set_page_config(layout="wide", page_title="Lead Gen CCIAA")
+# --- CONFIGURAZIONE PAGINA ---
+st.set_page_config(layout="wide", page_title="Lead Gen Apollo")
 
-if 'query' not in st.session_state:
-    st.session_state.query = ""
-if 'results' not in st.session_state:
-    st.session_state.results = None
+# --- RECUPERO CHIAVE API ---
+# Nota: dovrai cambiare il nome della variabile nei secrets di Streamlit
+APOLLO_API_KEY = st.secrets.get("APOLLO_API_KEY", "")
 
-OPENAPI_KEY = st.secrets.get("OPENAPI_KEY")
+st.title("🚀 Lead Generation Avanzata")
+st.info("**Powered by Apollo.io** • Estrai Sede, Decision Maker e Profili Social")
 
-if not OPENAPI_KEY:
-    st.error("❌ La chiave API non è stata caricata nei Secrets! Aggiungila per continuare.")
+if not APOLLO_API_KEY:
+    st.error("❌ Manca la chiave APOLLO_API_KEY nei Secrets di Streamlit!")
     st.stop()
 else:
-    st.write("✅ Chiave OpenAPI caricata")
+    st.success("✅ Chiave API Apollo caricata")
 
-st.image("banner.png")
-st.info("**Lead Generation** • Dati ufficiali Registro Imprese via OpenAPI.it (V2)")
+st.markdown("---")
 
-# --- FUNZIONI API AGGIORNATE ---
+# --- INTERFACCIA DI RICERCA ---
+# Per Apollo, la ricerca per dominio del sito web è la più precisa
+dominio_input = st.text_input("🌐 **Inserisci il dominio web dell'azienda**", 
+                              placeholder="Es: acea.it, eni.com, ferrari.com...")
 
-@st.cache_data(ttl=3600)
-def cerca_aziende_api(nome):
-    url = "https://company.openapi.com/IT-search"
-    headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
-    # Aggiungiamo dataEnrichment se possibile, altrimenti l'API restituisce solo ID
-    params = {"companyName": nome.strip(), "limit": 20}
-    
-    response = requests.get(url, headers=headers, params=params, timeout=15)
-    if response.status_code == 200:
-        data = response.json()
-        items = data if isinstance(data, list) else data.get("data", [])
-        
-        if items:
-            df = pd.DataFrame(items)
-            # Se hai solo 'id', usiamo quello come nome temporaneo
-            if 'denominazione' not in df.columns:
-                df['denominazione'] = "Azienda ID: " + df['id'].astype(str)
-            return df
-    return pd.DataFrame()
-
-@st.cache_data(ttl=86400)
-def ottieni_dati_company(piva_o_id):
-    # Usiamo l'endpoint corretto per il tuo piano (probabilmente IT-advanced)
-    url = f"https://company.openapi.com/IT-advanced/{piva_o_id}"
-    headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
-    
-    try:
-        response = requests.get(url, headers=headers, timeout=15)
-        if response.status_code == 200:
-            data = response.json()
-            # Gestione sicura se torna una lista o un dict
-            info = data[0] if isinstance(data, list) else data.get("data", data)
-            
-            if isinstance(info, dict):
-                return {
-                    "denominazione": info.get("companyName", "N/D"),
-                    "piva": info.get("vatCode", piva_o_id),
-                    "fatturato": info.get("revenue", "Dato non disp."),
-                    "comune": info.get("address", {}).get("city", "Da verificare") if isinstance(info.get("address"), dict) else "Da verificare"
-                }
-    except Exception as e:
-        st.error(f"Errore: {e}")
-    return {} # Ritorna dizionario vuoto invece di crashare
-
-
-
-# --- INTERFACCIA UTENTE ---
-
-query_input = st.text_input("🔍 **Nome azienda da cercare**", 
-                                value=st.session_state.query,
-                                placeholder="Es: Mario Rossi Srl...")
-    
 col_btn1, col_btn2 = st.columns(2)
 with col_btn1:
-    if st.button("🔎 AVVIA RICERCA", type="primary", use_container_width=True):
-        st.session_state.query = query_input
-        st.session_state.results = cerca_aziende_api(query_input)
+    btn_cerca = st.button("🔎 CERCA CONTATTI E SOCIAL", type="primary", use_container_width=True)
 with col_btn2:
     if st.button("🗑️ RESET", use_container_width=True):
-        st.session_state.query = ""
-        st.session_state.results = None
         st.rerun()
 
 st.markdown("---")
 
-if st.session_state.results is not None and not st.session_state.results.empty:
-    df = st.session_state.results
-    st.success(f"✅ Trovate {len(df)} potenziali aziende")
-
-    # ... (dopo st.success)
-    
-    nomi_aziende = []
-    # Usiamo una lista di supporto per mappare l'indice alla riga
-    for _, row in df.iterrows():
-        # Recuperiamo i dati in modo sicuro
-        nome = row.get('denominazione') or row.get('companyName') or "Azienda Senza Nome"
-        comune = row.get('comune') or "N/D"
-        piva = row.get('piva') or row.get('vatCode') or row.get('id') or "N/D"
+# --- LOGICA DI RICERCA APOLLO ---
+if btn_cerca and dominio_input:
+    with st.spinner(f"Ricerca nel database globale per {dominio_input}..."):
+        # Endpoint di Apollo per cercare persone all'interno di un dominio specifico
+        url = "https://api.apollo.io/v1/mixed_people/search"
         
-        # Costruiamo la stringa per la selectbox
-        nomi_aziende.append(f"{nome} ({comune}) - {piva}")
-    
-    # Ora passiamo la lista "pulita" al selectbox
-    scelta_idx = st.selectbox("🎯 **Seleziona l'azienda specifica:**", range(len(nomi_aziende)), format_func=lambda x: nomi_aziende[x])
-    
-    # Recuperiamo la riga selezionata in base all'indice (scelta_idx)
-    riga_selezionata = df.iloc[scelta_idx]
-    
-    # Estraiamo la PIVA in modo sicuro
-    piva_selezionata = riga_selezionata.get('piva') or riga_selezionata.get('vatCode') or riga_selezionata.get('id')
-    
-    # ... dopo st.success ...
-
-    # Creiamo la lista per la selectbox in modo sicuro
-    nomi_aziende = []
-    for _, row in df.iterrows():
-        nome = row.get('denominazione') or row.get('companyName') or "Azienda Senza Nome"
-        comune = row.get('comune') or "N/D"
-        piva = row.get('piva') or row.get('vatCode') or row.get('id') or "N/D"
-        nomi_aziende.append(f"{nome} ({comune}) - {piva}")
-
-    # Selectbox unica
-    scelta_idx = st.selectbox("🎯 **Seleziona azienda per estrarre dati:**", range(len(nomi_aziende)), format_func=lambda x: nomi_aziende[x])
-    
-    # Recupero riga e PIVA
-    riga_selezionata = df.iloc[scelta_idx]
-    piva_selezionata = riga_selezionata.get('piva') or riga_selezionata.get('vatCode') or riga_selezionata.get('id')
-
-    if st.button("📊 ESTRAI DATI CERTIFICATI"):
-        with st.spinner("Interrogazione in corso..."):
-            dati_profondi = ottieni_dati_company(piva_selezionata)
+        headers = {
+            "Cache-Control": "no-cache",
+            "Content-Type": "application/json"
+        }
+        
+        # Parametri della richiesta
+        data = {
+            "api_key": APOLLO_API_KEY,
+            "q_organization_domains": dominio_input.strip(),
+            "page": 1,
+            "per_page": 15 # Numero di risultati da mostrare
+        }
+        
+        try:
+            response = requests.post(url, headers=headers, json=data, timeout=15)
             
-            if dati_profondi:
-                # ... (tutto il blocco visualizzazione dati rimane uguale a prima)
-                st.markdown("### 📋 Scheda Aziendale Verificata")
-                # (Assicurati di mantenere qui i tuoi st.metric e st.write)
-                # ...
+            if response.status_code == 200:
+                risultati = response.json()
+                persone = risultati.get("people", [])
                 
-    # Expander finale
-    with st.expander("Visualizza lista completa"):
-        st.dataframe(df, use_container_width=True)
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button("💾 Scarica CSV", csv, "export_ricerca.csv", "text/csv")
+                if persone:
+                    st.success(f"✅ Trovati {len(persone)} profili chiave!")
+                    
+                    # Costruiamo la lista pulita da mostrare in tabella
+                    dati_estratti = []
+                    for p in persone:
+                        nome = f"{p.get('first_name', '')} {p.get('last_name', '')}"
+                        ruolo = p.get('title', 'N/D')
+                        linkedin = p.get('linkedin_url', 'N/D')
+                        citta = p.get('city', 'N/D')
+                        
+                        # Estraiamo i dati dell'azienda dalla scheda della persona
+                        org = p.get('organization', {})
+                        nome_azienda = org.get('name', 'N/D') if org else 'N/D'
+                        
+                        dati_estratti.append({
+                            "Azienda": nome_azienda,
+                            "Dipendente": nome.strip(),
+                            "Ruolo": ruolo,
+                            "Città": citta,
+                            "Profilo LinkedIn": linkedin
+                        })
+                    
+                    # Creiamo il DataFrame e lo mostriamo
+                    df = pd.DataFrame(dati_estratti)
+                    
+                    # Diciamo a Streamlit di rendere i link cliccabili
+                    st.dataframe(
+                        df, 
+                        use_container_width=True,
+                        column_config={
+                            "Profilo LinkedIn": st.column_config.LinkColumn("Link Social")
+                        }
+                    )
+                    
+                    # Bottone per il download
+                    csv = df.to_csv(index=False).encode('utf-8')
+                    st.download_button("💾 Scarica Dati in CSV", csv, f"lead_{dominio_input}.csv", "text/csv")
+                    
+                else:
+                    st.warning(f"Nessun contatto trovato per il dominio {dominio_input}.")
+            else:
+                st.error(f"Errore API {response.status_code}: {response.text}")
+                
+        except Exception as e:
+            st.error(f"Errore di connessione: {e}")
