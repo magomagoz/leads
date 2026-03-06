@@ -119,76 +119,55 @@ if st.session_state.results is not None and not st.session_state.results.empty:
 
     # ... (dopo st.success)
     
-    # Creiamo direttamente la lista usando la funzione sicura
     nomi_aziende = []
+    # Usiamo una lista di supporto per mappare l'indice alla riga
     for _, row in df.iterrows():
-        # Utilizziamo .get() per ogni campo, così se manca non va in crash
+        # Recuperiamo i dati in modo sicuro
         nome = row.get('denominazione') or row.get('companyName') or "Azienda Senza Nome"
         comune = row.get('comune') or "N/D"
         piva = row.get('piva') or row.get('vatCode') or row.get('id') or "N/D"
         
-        # Aggiungiamo alla lista formattata
+        # Costruiamo la stringa per la selectbox
         nomi_aziende.append(f"{nome} ({comune}) - {piva}")
     
-    # Ora passiamo la lista pulita al selectbox
-    scelta = st.selectbox("🎯 **Seleziona l'azienda specifica:**", range(len(nomi_aziende)), format_func=lambda x: nomi_aziende[x])
+    # Ora passiamo la lista "pulita" al selectbox
+    scelta_idx = st.selectbox("🎯 **Seleziona l'azienda specifica:**", range(len(nomi_aziende)), format_func=lambda x: nomi_aziende[x])
     
-    # Recuperiamo la PIVA in modo sicuro dall'indice scelto
-    piva_selezionata = df.iloc[scelta].get('piva') or df.iloc[scelta].get('vatCode') or df.iloc[scelta].get('id')
+    # Recuperiamo la riga selezionata in base all'indice (scelta_idx)
+    riga_selezionata = df.iloc[scelta_idx]
     
-    # ... (continua con il bottone ESTRAI DATI)
+    # Estraiamo la PIVA in modo sicuro
+    piva_selezionata = riga_selezionata.get('piva') or riga_selezionata.get('vatCode') or riga_selezionata.get('id')
+    
+    # ... dopo st.success ...
 
-    # Versione sicura per evitare KeyError
-    def formatta_riga(row):
+    # Creiamo la lista per la selectbox in modo sicuro
+    nomi_aziende = []
+    for _, row in df.iterrows():
         nome = row.get('denominazione') or row.get('companyName') or "Azienda Senza Nome"
         comune = row.get('comune') or "N/D"
         piva = row.get('piva') or row.get('vatCode') or row.get('id') or "N/D"
-        return f"{nome} ({comune}) - {piva}"
+        nomi_aziende.append(f"{nome} ({comune}) - {piva}")
 
-    nomi_aziende = [formatta_riga(row) for _, row in df.iterrows()]
+    # Selectbox unica
+    scelta_idx = st.selectbox("🎯 **Seleziona azienda per estrarre dati:**", range(len(nomi_aziende)), format_func=lambda x: nomi_aziende[x])
     
-    # Adattamento per leggere la PIVA o l'ID della V2
-    nomi_aziende = [f"{row['denominazione']} ({row.get('comune', 'N/D')}) - {row.get('piva', row.get('id', 'N/D'))}" for _, row in df.iterrows()]
-    scelta = st.selectbox("🎯 **Seleziona l'azienda specifica per estrarre i dati COMPANY:**", range(len(nomi_aziende)), format_func=lambda x: nomi_aziende[x])
-    
-    piva_selezionata = df.iloc[scelta].get('piva', df.iloc[scelta].get('id'))
-    
-    if st.button("📊 ESTRAI DATI CERTIFICATI (Fatturato, PEC, Dipendenti)"):
-        with st.spinner("Interrogazione Registro Imprese in corso..."):
+    # Recupero riga e PIVA
+    riga_selezionata = df.iloc[scelta_idx]
+    piva_selezionata = riga_selezionata.get('piva') or riga_selezionata.get('vatCode') or riga_selezionata.get('id')
+
+    if st.button("📊 ESTRAI DATI CERTIFICATI"):
+        with st.spinner("Interrogazione in corso..."):
             dati_profondi = ottieni_dati_company(piva_selezionata)
             
             if dati_profondi:
+                # ... (tutto il blocco visualizzazione dati rimane uguale a prima)
                 st.markdown("### 📋 Scheda Aziendale Verificata")
+                # (Assicurati di mantenere qui i tuoi st.metric e st.write)
+                # ...
                 
-                c1, c2, c3 = st.columns(3)
-                with c1:
-                    st.metric("Fatturato", f"€ {dati_profondi.get('fatturato', 'N/D')}")
-                with c2:
-                    st.metric("Dipendenti", dati_profondi.get('numero_dipendenti', 'N/D'))
-                with c3:
-                    st.metric("Stato", dati_profondi.get('stato_attivita', 'N/D'))
-
-                col_info1, col_info2 = st.columns(2)
-                with col_info1:
-                    st.write(f"**Ragione Sociale:** {dati_profondi.get('denominazione')}")
-                    st.write(f"**Partita IVA:** `{dati_profondi.get('piva')}`")
-                    st.write(f"**Codice Fiscale:** `{dati_profondi.get('codice_fiscale')}`")
-                    st.write(f"**Data Costituzione:** {dati_profondi.get('data_costituzione', 'N/D')}")
-                
-                with col_info2:
-                    st.write(f"**PEC:** `{dati_profondi.get('pec', 'Non disponibile')}`")
-                    st.write(f"**Indirizzo:** {dati_profondi.get('indirizzo', '')}, {dati_profondi.get('cap', '')} {dati_profondi.get('comune', '')}")
-                    st.write(f"**ATECO:** {dati_profondi.get('codice_ateco', 'N/D')}")
-
-                st.markdown("---")
-                st.markdown("### 🔗 Quick Links")
-                ln_nome = dati_profondi.get('denominazione').replace(" ", "%20")
-                st.markdown(f"[🔍 Cerca Decision Maker su LinkedIn](https://www.linkedin.com/search/results/people/?keywords={ln_nome})")
-
-    with st.expander("Visualizza lista completa risultati ricerca"):
+    # Expander finale
+    with st.expander("Visualizza lista completa"):
         st.dataframe(df, use_container_width=True)
         csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button("💾 Scarica Lista in CSV", csv, "export_ricerca.csv", "text/csv")
-
-elif st.session_state.query:
-    st.warning("Nessun risultato trovato. Prova a cambiare i filtri o il nome.")
+        st.download_button("💾 Scarica CSV", csv, "export_ricerca.csv", "text/csv")
