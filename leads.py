@@ -40,7 +40,12 @@ def cerca_aziende_api(nome):
         "limit": 20
     }
     try:
-        response = requests.get(url, headers=headers, params=params, timeout=15)
+        #response = requests.get(url, headers=headers, params=params, timeout=15)
+
+        response = requests.post(search_url, json=payload, headers=headers)
+        st.write(response.json()) # <--- AGGIUNGI QUESTO
+
+        
         if response.status_code == 200:
             data = response.json()
             if data.get("success") and data.get("results"):
@@ -58,6 +63,11 @@ def ottieni_dati_company(piva):
     headers = {"Authorization": f"Bearer {OPENAPI_KEY}"}
     try:
         response = requests.get(url, headers=headers, timeout=15)
+
+        response = requests.post(search_url, json=payload, headers=headers)
+        st.write(response.json()) # <--- AGGIUNGI QUESTO
+
+        
         if response.status_code == 200:
             return response.json().get("data", {})
         else:
