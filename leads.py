@@ -63,20 +63,20 @@ if st.button("🔎 CERCA CONTATTI E SOCIAL"):
         
         st.markdown("---")
                 
-            # --- PERSONE ---
-            emails = data.get("emails", [])
-            if emails:
-                st.subheader(f"👥 Persone trovate ({len(emails)})")
-                lista = [{"Nome": f"{e.get('first_name', '')} {e.get('last_name', '')}", 
-                          "Ruolo": e.get('position', 'N/D'), 
-                          "Email": e.get('value', 'N/D'), 
-                          "LinkedIn": e.get('linkedin', 'N/D')} for e in emails]
+        # --- PERSONE ---
+        emails = data.get("emails", [])
+        if emails:
+            st.subheader(f"👥 Persone trovate ({len(emails)})")
+            lista = [{"Nome": f"{e.get('first_name', '')} {e.get('last_name', '')}", 
+                      "Ruolo": e.get('position', 'N/D'), 
+                      "Email": e.get('value', 'N/D'), 
+                        "LinkedIn": e.get('linkedin', 'N/D')} for e in emails]
                     
-                df = pd.DataFrame(lista)
-                st.dataframe(df, use_container_width=True, column_config={"LinkedIn": st.column_config.LinkColumn()})
-            else:
-                st.warning("Nessun contatto pubblico trovato.")
+            df = pd.DataFrame(lista)
+            st.dataframe(df, use_container_width=True, column_config={"LinkedIn": st.column_config.LinkColumn()})
         else:
-            st.error("Errore nella richiesta: verifica il dominio o la chiave API.")
-    except Exception as e:
-        st.error(f"Errore critico: {e}")
+            st.warning("Nessun contatto pubblico trovato.")
+    else:
+        st.error("Errore nella richiesta: verifica il dominio o la chiave API.")
+except Exception as e:
+    st.error(f"Errore critico: {e}")
