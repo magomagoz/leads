@@ -32,36 +32,37 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
         st.warning("Inserisci un nome o un dominio.")
     else:
         with st.spinner("Scansione estensioni in corso..."):
-            # Pulizia input e lista estensioni da provare
             nome_puro = nome_input.strip().lower().split('.')[0]
-                        # --- POSIZIONE 1: Inizializza qui ---
             progress_bar = st.progress(0)
-            
-            # Ciclo di test sui domini
             estensioni = ["it", "com", "biz", "eu", "cloud"]
             
-            for i, ext in enumerate(estensioni): # Aggiungi 'i' con enumerate
+            data_trovata = None # Inizializza come None
+            
+            for i, ext in enumerate(estensioni):
                 test_dom = f"{nome_puro}.{ext}"
                 url_h = f"https://api.hunter.io/v2/domain-search?domain={test_dom}&api_key={HUNTER_API_KEY}"
                 
                 try:
-                    res = requests.get(url_h, timeout=10)
+                    # Usa session.get invece di requests.get
+                    res = session.get(url_h, timeout=10) 
                     if res.status_code == 200:
                         temp_data = res.json().get("data", {})
                         if temp_data.get("emails"):
                             data_trovata = temp_data
                             dominio_vincente = test_dom
-                            # --- POSIZIONE 2: Porta al 100% se trovi subito ---
                             progress_bar.progress(1.0)
                             break
                 except:
                     pass
-                
-                # --- POSIZIONE 3: Aggiorna il progresso ---
                 progress_bar.progress((i + 1) / len(estensioni))
-               
-            # Nasconde la barra una volta finita la ricerca
+            
             progress_bar.empty()
+            
+            # Aggiunto controllo: se non troviamo dati, avvisiamo l'utente
+            if not data_trovata:
+                st.error("❌ Nessun dato trovato per questo nome. Prova ad inserire il dominio completo.")
+                st.stop()
+
 
 
             if data_trovata:
