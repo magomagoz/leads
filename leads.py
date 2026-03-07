@@ -4,7 +4,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import re
 from fpdf import FPDF
-
+from datetime import datetime
 
 session = requests.Session()
 session.headers.update({'User-Agent': 'Mozilla/5.0'})
@@ -180,31 +180,54 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                     st.warning("Nessun contatto trovato.")
 
 # --- FUNZIONE GENERAZIONE PDF ---
-def crea_pdf(ragione_sociale, piva, citta, sito, df):
-    pdf = FPDF()
+
+class PDFReport(FPDF):
+    def footer(self):
+        # Posiziona il piè di pagina a 1.5 cm dal bordo inferiore
+        self.set_y(-15)
+        self.set_font("Arial", 'I', 8)
+        self.cell(0, 10, f"Generato il {datetime.now().strftime('%d/%m/%Y %H:%M')} | Pagina {self.page_no()}", align='C')
+
+def crea_pdf(ragione_sociale, piva, citta, sito, df, dominio_vincente):
+    pdf = PDFReport()
     pdf.add_page()
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt=f"Report Lead: {ragione_sociale}", ln=True, align='C')
     
-    pdf.set_font("Arial", size=12)
-    pdf.ln(10)
-    pdf.cell(200, 10, txt=f"Partita IVA: {piva}", ln=True)
-    pdf.cell(200, 10, txt=f"Citta: {citta}", ln=True)
-    pdf.cell(200, 10, txt=f"Sito Web: {sito}", ln=True)
+    # 1. LOGO (Preso dinamicamente da Google Favicon)
+    logo_url = f"https://www.google.com/s2/favicons?domain={dominio_vincente}&sz=128"
+    try:
+        # Nota: fpdf deve scaricare l'immagine localmente prima di aggiungerla
+        img_data = requests.get(logo_url).content
+        with open("temp_logo.png", "wb") as handler:
+            handler.write(img_data)
+        pdf.image("temp_logo.png", x=10, y=8, w=15)
+    except:
+        pass # Se il logo non si carica, prosegue senza
+    
+    # 2. TITOLO
+    pdf.set_font("Arial", 'B', 20)
+    pdf.cell(0, 15, txt=f"Report Lead: {ragione_sociale}", ln=True, align='C')
+    pdf.ln(5)
+    
+    # 3. DATI AZIENDALI
+    pdf.set_font("Arial", '', 12)
+    pdf.cell(0, 10, txt=f"Partita IVA: {piva}", ln=True)
+    pdf.cell(0, 10, txt=f"Sede: {citta}", ln=True)
+    pdf.cell(0, 10, txt=f"Sito: {sito}", ln=True)
     pdf.ln(10)
     
-    # Tabella nel PDF
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(40, 10, "Nome", border=1)
-    pdf.cell(50, 10, "Ruolo", border=1)
-    pdf.cell(60, 10, "Email", border=1)
+    # 4. TABELLA
+    pdf.set_font("Arial", 'B', 11)
+    pdf.set_fill_color(200, 220, 255)
+    pdf.cell(50, 10, "Nome", border=1, fill=True)
+    pdf.cell(50, 10, "Ruolo", border=1, fill=True)
+    pdf.cell(90, 10, "Email", border=1, fill=True)
     pdf.ln()
     
     pdf.set_font("Arial", size=10)
-    for index, row in df.iterrows():
-        pdf.cell(40, 10, str(row['👤 Nome']), border=1)
-        pdf.cell(50, 10, str(row['💼 Ruolo']), border=1)
-        pdf.cell(60, 10, str(row['📧 Email']), border=1)
+    for _, row in df.iterrows():
+        pdf.cell(50, 10, str(row['👤 Nome'])[:25], border=1)
+        pdf.cell(50, 10, str(row['💼 Ruolo'])[:25], border=1)
+        pdf.cell(90, 10, str(row['📧 Email']), border=1)
         pdf.ln()
         
     return pdf.output(dest='S').encode('latin-1')
@@ -218,4 +241,3 @@ if 'df' in locals():
         file_name=f"Report_{ragione_sociale}.pdf",
         mime="application/pdf"
     )
-
