@@ -121,72 +121,46 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                 st.stop()
 
             if data_trovata:
-                # 2. Dati base e Scraping (usando il dominio trovato)
-                ragione_sociale = data_trovata.get('organization', nome_puro.capitalize())
-                #piva_trovata = data_trovata.get('vat', 'Non disponibile su Hunter')
+                # Usa input_pulito (o dominio_vincente) invece di nome_puro
+                ragione_sociale = data_trovata.get('organization', input_pulito.capitalize())
                 
-                # Inserisci questo logica nel tuo blocco di ricerca
+                # --- SCRAPING AVANZATO P.IVA E CITTÀ ---
                 piva_trovata = data_trovata.get('vat', 'Non trovata')
                 citta_trovata = data_trovata.get('city', 'Non trovata')
                 
+                # Scansione pagine per dati mancanti
                 if piva_trovata == 'Non trovata' or citta_trovata == 'Non trovata':
-                    pagine = ["/contatti", "/chi-siamo", "/legal", "/privacy-policy"]
+                    pagine = ["", "/contatti", "/chi-siamo", "/legal", "/privacy-policy"]
                     for p in pagine:
                         try:
                             r = session.get(f"https://{dominio_vincente}{p}", timeout=5)
                             soup = BeautifulSoup(r.text, 'html.parser')
-                            testo = soup.get_text()
+                            testo = soup.get_text(separator=' ', strip=True)
                             
                             if piva_trovata == 'Non trovata':
                                 piva_trovata = trova_piva(testo, dominio_vincente) or 'Non trovata'
                             if citta_trovata == 'Non trovata':
                                 citta_trovata = trova_citta(testo) or 'Non trovata'
-                        except: continue
+                        except: 
+                            continue
 
-                citta_trovata = data_trovata.get('city', 'Non disponibile su Hunter')
-                
-                # --- 2. CRAWLING INVESTIGATIVO (HOME + PAGINE CHIAVE) ---
-                testo_sito_esteso = ""
-                
-                pagine_da_visitare = ["/contatti", "/chi-siamo"] # Limitiamo le pagine critiche
-                
-                for pag in pagine_da_visitare:
-                    if citta_trovata != 'Non disponibile su Hunter': # Se l'abbiamo già, non cercare più
-                        break
-                        
-                    url_test = f"https://{dominio_vincente}{pag}"
-                    try:
-                        res_p = session.get(url_test, timeout=3) # Timeout più stretto
-                        if res_p.status_code == 200:
-                            soup_p = BeautifulSoup(res_p.text, 'html.parser')
-                            # Regex ottimizzata per estrarre la città
-                            match_c = re.search(r'\b\d{5}\b\s+([A-Z][a-zA-ZÀ-ÿ\s]{2,20})', soup_p.get_text())
-                            if match_c:
-                                citta_trovata = match_c.group(1).strip()
-                    except:
-                        continue
-                #except:
-                    #pass
-                    
                 # --- VISUALIZZAZIONE ---
                 st.success(f"✅ Dominio identificato: **{dominio_vincente}**")
                 st.markdown("---")
                 st.header("🏢 Informazioni Aziendali")
-                st.write(" ")
                 col_logo, col_info = st.columns([1, 4])
                 
                 with col_logo:
-                    # (Codice logo precedente...)
                     st.image(f"https://www.google.com/s2/favicons?domain={dominio_vincente}&sz=128", width=80)
                 
                 with col_info:
                     c1, c2 = st.columns(2)
-                    with c1:
-                        st.write(f"**🏭 Ragione Sociale:** {ragione_sociale}")
-                        st.write(f"**🆔 Partita IVA:** {piva_trovata}")
-                    with c2:
-                        st.write(f"**📍 Città/Sede:** {citta_trovata}")
-                        st.write(f"**🌐 Sito Web:** www.{dominio_vincente}")
+                    c1.write(f"**🏭 Ragione Sociale:** {ragione_sociale}")
+                    c1.write(f"**🆔 Partita IVA:** {piva_trovata}")
+                    c2.write(f"**📍 Città/Sede:** {citta_trovata}")
+                    c2.write(f"**🌐 Sito Web:** www.{dominio_vincente}")
+                    if citta_trovata != 'Non trovata':
+                        c2.caption(f"[Vedi su Maps](http://google.com/maps/search/{ragione_sociale}+{citta_trovata})")
 
                     # Link rapido a Google Maps per la città
                     if citta_trovata != 'Non disponibile su Hunter':
