@@ -3,6 +3,8 @@ import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 import re
+from fpdf import FPDF
+
 
 session = requests.Session()
 session.headers.update({'User-Agent': 'Mozilla/5.0'})
@@ -176,8 +178,6 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                                  column_config={"🔗 LinkedIn": st.column_config.LinkColumn("Apri Profilo/Ricerca")})
                 else:
                     st.warning("Nessun contatto trovato.")
-
-from fpdf import FPDF
 
 # --- FUNZIONE GENERAZIONE PDF ---
 def crea_pdf(ragione_sociale, piva, citta, sito, df):
