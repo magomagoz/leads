@@ -118,6 +118,7 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                 # --- VISUALIZZAZIONE ---
                 st.success(f"✅ Dominio identificato: **{dominio_vincente}**")
                 st.markdown("---")
+                st.header("🏢 Informazioni Aziendali")
                 col_logo, col_info = st.columns([1, 4])
                 
                 with col_logo:
@@ -125,7 +126,6 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                     st.image(f"https://www.google.com/s2/favicons?domain={dominio_vincente}&sz=128", width=80)
                 
                 with col_info:
-                    st.subheader("🏢 Informazioni Aziendali")
                     c1, c2 = st.columns(2)
                     with c1:
                         st.write(f"**🏭 Ragione Sociale:** {ragione_sociale}")
