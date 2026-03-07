@@ -19,9 +19,9 @@ st.image("banner.png")
 #st.title("🚀 Lead Generation Intelligente")
 st.info("Inserisci solo il nome (es: 'Acea') e il sistema proverà le estensioni .it, .com, .biz, .eu, .cloud")
 
-nome_input = st.text_input("🏢 Nome azienda o dominio")
+nome_input = st.text_input("🏢 Nome azienda")
 
-if st.button("🔎 AVVIA RICERCA SMART", type="primary"):
+if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
     if not nome_input:
         st.warning("Inserisci un nome o un dominio.")
     else:
@@ -79,9 +79,6 @@ if st.button("🔎 AVVIA RICERCA SMART", type="primary"):
                             continue # Se una pagina non esiste, passa alla prossima
                 except:
                     pass
-
-
-                
                     
                 # --- VISUALIZZAZIONE ---
                 st.success(f"✅ Dominio identificato: **{dominio_vincente}**")
