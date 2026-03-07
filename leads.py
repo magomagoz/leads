@@ -18,6 +18,48 @@ try:
 except:
     st.error("❌ Errore: HUNTER_API_KEY non trovata nei secrets!")
     st.stop()
+# --- CLASSE PER PDF PROFESSIONALE ---
+class PDFReport(FPDF):
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("Arial", 'I', 8)
+        self.cell(0, 10, f"Generato il {datetime.now().strftime('%d/%m/%Y %H:%M')} | Pagina {self.page_no()}", align='C')
+
+def crea_pdf(ragione_sociale, piva, citta, sito, df, dominio):
+    pdf = PDFReport()
+    pdf.add_page()
+    # Logo dinamico
+    try:
+        logo_url = f"https://www.google.com/s2/favicons?domain={dominio}&sz=128"
+        img_data = requests.get(logo_url, timeout=3).content
+        with open("temp_logo.png", "wb") as f: f.write(img_data)
+        pdf.image("temp_logo.png", x=10, y=8, w=15)
+    except: pass
+    
+    # Header e Dati
+    pdf.set_font("Arial", 'B', 20)
+    pdf.cell(0, 15, f"Report Lead: {ragione_sociale}", ln=True, align='C')
+    pdf.ln(5)
+    pdf.set_font("Arial", '', 12)
+    pdf.cell(0, 10, f"Partita IVA: {piva}", ln=True)
+    pdf.cell(0, 10, f"Sede: {citta}", ln=True)
+    pdf.cell(0, 10, f"Sito: {sito}", ln=True)
+    pdf.ln(10)
+    
+    # Tabella
+    pdf.set_font("Arial", 'B', 11)
+    pdf.set_fill_color(200, 220, 255)
+    pdf.cell(50, 10, "Nome", border=1, fill=True)
+    pdf.cell(50, 10, "Ruolo", border=1, fill=True)
+    pdf.cell(90, 10, "Email", border=1, fill=True)
+    pdf.ln()
+    pdf.set_font("Arial", size=10)
+    for _, row in df.iterrows():
+        pdf.cell(50, 10, str(row['👤 Nome'])[:25], border=1)
+        pdf.cell(50, 10, str(row['💼 Ruolo'])[:25], border=1)
+        pdf.cell(90, 10, str(row['📧 Email']), border=1)
+        pdf.ln()
+    return pdf.output(dest='S').encode('latin-1')
 
 st.image("banner.png")
 
@@ -178,59 +220,6 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                                  column_config={"🔗 LinkedIn": st.column_config.LinkColumn("Apri Profilo/Ricerca")})
                 else:
                     st.warning("Nessun contatto trovato.")
-
-                # --- FUNZIONE GENERAZIONE PDF ---
-                
-                class PDFReport(FPDF):
-                    def footer(self):
-                        # Posiziona il piè di pagina a 1.5 cm dal bordo inferiore
-                        self.set_y(-15)
-                        self.set_font("Arial", 'I', 8)
-                        self.cell(0, 10, f"Generato il {datetime.now().strftime('%d/%m/%Y %H:%M')} | Pagina {self.page_no()}", align='C')
-                
-                def crea_pdf(ragione_sociale, piva, citta, sito, df, dominio_vincente):
-                    pdf = PDFReport()
-                    pdf.add_page()
-                    
-                    # 1. LOGO (Preso dinamicamente da Google Favicon)
-                    logo_url = f"https://www.google.com/s2/favicons?domain={dominio_vincente}&sz=128"
-                    try:
-                        # Nota: fpdf deve scaricare l'immagine localmente prima di aggiungerla
-                        img_data = requests.get(logo_url).content
-                        with open("temp_logo.png", "wb") as handler:
-                            handler.write(img_data)
-                        pdf.image("temp_logo.png", x=10, y=8, w=15)
-                    except:
-                        pass # Se il logo non si carica, prosegue senza
-                    
-                    # 2. TITOLO
-                    pdf.set_font("Arial", 'B', 20)
-                    pdf.cell(0, 15, txt=f"Report Lead: {ragione_sociale}", ln=True, align='C')
-                    pdf.ln(5)
-                    
-                    # 3. DATI AZIENDALI
-                    pdf.set_font("Arial", '', 12)
-                    pdf.cell(0, 10, txt=f"Partita IVA: {piva}", ln=True)
-                    pdf.cell(0, 10, txt=f"Sede: {citta}", ln=True)
-                    pdf.cell(0, 10, txt=f"Sito: {sito}", ln=True)
-                    pdf.ln(10)
-                    
-                    # 4. TABELLA
-                    pdf.set_font("Arial", 'B', 11)
-                    pdf.set_fill_color(200, 220, 255)
-                    pdf.cell(50, 10, "Nome", border=1, fill=True)
-                    pdf.cell(50, 10, "Ruolo", border=1, fill=True)
-                    pdf.cell(90, 10, "Email", border=1, fill=True)
-                    pdf.ln()
-                    
-                    pdf.set_font("Arial", size=10)
-                    for _, row in df.iterrows():
-                        pdf.cell(50, 10, str(row['👤 Nome'])[:25], border=1)
-                        pdf.cell(50, 10, str(row['💼 Ruolo'])[:25], border=1)
-                        pdf.cell(90, 10, str(row['📧 Email']), border=1)
-                        pdf.ln()
-                        
-                    return pdf.output(dest='S').encode('latin-1')
                 
                 # --- AGGIUNTA PULSANTE DOWNLOAD NELL'APP ---
                 if 'df' in locals():
