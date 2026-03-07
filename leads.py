@@ -108,15 +108,13 @@ if st.button("🔎 AVVIA RICERCA SMART", type="primary"):
                                 
                 st.markdown("---")
 
-                # --- 4. TABELLA PERSONE CON LINK SOCIAL GENERATI ---
+                # --- 4. TABELLA PERSONE CON "LINKEDIN MAGIC SEARCH" ---
                 emails = data_trovata.get("emails", [])
                 if emails:
-                    st.subheader(f"👥 Persone trovate ({len(emails)})")
+                    st.subheader(f"👥 Lead Identificati ({len(emails)})")
                     lista = []
                     for e in emails:
-                        nome_completo = f"{e.get('first_name', '')} {e.get('last_name', '')}".strip()
-    
-                        #nome = f"{e.get('first_name', '')} {e.get('last_name', '')}".strip()
+                        nome = f"{e.get('first_name', '')} {e.get('last_name', '')}".strip()
                         ruolo = e.get('position', 'N/D')
                         
                         # Se il ruolo è N/D su Hunter, cerchiamo di indovinarlo dal dominio (es. sales@...)
@@ -125,16 +123,26 @@ if st.button("🔎 AVVIA RICERCA SMART", type="primary"):
                             if 'sales' in email_val: ruolo = 'Sales Dept'
                             elif 'info' in email_val: ruolo = 'Customer Office'
                             elif 'admin' in email_val: ruolo = 'Administration'
-
-                        linkedin_url = e.get('linkedin')
                         
-                        # TRUCCO: Se LinkedIn manca, generiamo un link di ricerca automatica su Google
-                        if not linkedin_url and nome_completo:
-                            linkedin_url = f"https://www.google.com/search?q=site:linkedin.com/in/+{nome_completo.replace(' ', '+')}+{ragione_sociale}"
+                        # GENERAZIONE LINK LINKEDIN (Cerca su Google se manca il link diretto)
+                        lk_url = e.get('linkedin')
+                        if not lk_url and nome:
+                            # Ricerca mirata: site:linkedin.com/in/ Nome Cognome Azienda
+                            lk_url = f"https://www.google.com/search?q=site:linkedin.com/in/+{nome.replace(' ', '+')}+{ragione_sociale.replace(' ', '+')}"
+                        
+                        lista.append({
+                            "👤 Nome": nome or "Lead",
+                            "💼 Ruolo": ruolo,
+                            "📧 Email": email_val,
+                            "🔗 LinkedIn": lk_url
+                        })
                     
                     df = pd.DataFrame(lista)
                     df.index = df.index + 1
-                    st.dataframe(df, use_container_width=True, column_config={"🔗 LinkedIn": st.column_config.LinkColumn("Profilo/Ricerca")})
-
+                    
+                    # Colonna LinkedIn come Link cliccabile
+                    st.dataframe(df, use_container_width=True, 
+                                 column_config={"🔗 LinkedIn": st.column_config.LinkColumn("Apri Profilo/Ricerca")})
                 else:
                     st.warning("Nessun contatto trovato.")
+
