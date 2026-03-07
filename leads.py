@@ -84,7 +84,7 @@ if st.button("🔎 AVVIA RICERCA SMART", type="primary"):
                         st.write(f"**Partita IVA:** {piva_trovata}")
                     with c2:
                         st.write(f"**Città/Sede:** {citta_trovata}")
-                        st.write(f"**Sito Web:** www.{dominio}")
+                        st.write(f"**Sito Web:** www.{dominio_vincente}")
                     
                 st.markdown("---")
 
