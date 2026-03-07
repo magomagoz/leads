@@ -125,28 +125,23 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                 ragione_sociale = data_trovata.get('organization', nome_puro.capitalize())
                 #piva_trovata = data_trovata.get('vat', 'Non disponibile su Hunter')
                 
-                # --- SCRAPING AVANZATO P.IVA ---
-                piva_trovata = data_trovata.get('vat') or "Non trovata"
+                # Inserisci questo logica nel tuo blocco di ricerca
+                piva_trovata = data_trovata.get('vat', 'Non trovata')
+                citta_trovata = data_trovata.get('city', 'Non trovata')
                 
-                if piva_trovata == "Non trovata":
-                    pagine_target = ["", "/contatti", "/chi-siamo", "/legal", "/privacy-policy"]
-                    
-                    # Pattern P.IVA: cerca 11 cifre, anche separate da spazi o punti
-                    regex_piva = r'(?:P\.?\s*I\.?\s*V\.?\s*A\.?\s*[:\s]*|VAT\s*[:\s]*|Partita\s*IVA\s*[:\s]*)\s*(\d[.\s\d]{10,13}\d)'
-                    
-                    for pag in pagine_target:
+                if piva_trovata == 'Non trovata' or citta_trovata == 'Non trovata':
+                    pagine = ["/contatti", "/chi-siamo", "/legal", "/privacy-policy"]
+                    for p in pagine:
                         try:
-                            res = requests.get(f"https://{dominio_vincente}{pag}", timeout=5, headers={'User-Agent': 'Mozilla/5.0'})
-                            if res.status_code == 200:
-                                # Cerchiamo il pattern nel testo
-                                match = re.search(regex_piva, res.text, re.IGNORECASE)
-                                if match:
-                                    # Pulizia stringa trovata (togliamo punti e spazi)
-                                    piva_pulita = re.sub(r'[\s.]', '', match.group(1))
-                                    piva_trovata = piva_pulita
-                                    break # Trovata, fermiamo la ricerca
-                        except:
-                            continue
+                            r = session.get(f"https://{dominio_vincente}{p}", timeout=5)
+                            soup = BeautifulSoup(r.text, 'html.parser')
+                            testo = soup.get_text()
+                            
+                            if piva_trovata == 'Non trovata':
+                                piva_trovata = trova_piva(testo, dominio_vincente) or 'Non trovata'
+                            if citta_trovata == 'Non trovata':
+                                citta_trovata = trova_citta(testo) or 'Non trovata'
+                        except: continue
 
                 citta_trovata = data_trovata.get('city', 'Non disponibile su Hunter')
                 
