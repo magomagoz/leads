@@ -88,43 +88,30 @@ if st.button("🔎 AVVIA RICERCA SMART", type="primary"):
                     
                 st.markdown("---")
 
-                # 4. TABELLA PERSONE
+                # 4. TABELLA PERSONE CON ICONE
                 emails = data_trovata.get("emails", [])
-                st.subheader(f"👥 Persone trovate ({len(emails)})")
-                lista = [{"Nome": f"{e.get('first_name', '')} {e.get('last_name', '')}".strip() or "N/D",
-                          "Ruolo": e.get('position', 'N/D'),
-                          "Email": e.get('value', 'N/D'),
-                          "LinkedIn": e.get('linkedin', 'N/D')} for e in emails]
-                
-                df = pd.DataFrame(lista)
-                df.index = df.index + 1
-                st.dataframe(df, use_container_width=True, column_config={"LinkedIn": st.column_config.LinkColumn()})
-            else:
-                st.error(f"❌ Impossibile trovare dati per '{nome_puro}' con le estensioni comuni.")
-
-
-                # 4. TABELLA PERSONE (Indice da 1)
-                emails = data.get("emails", [])
                 if emails:
                     st.subheader(f"👥 Persone trovate ({len(emails)})")
+                    
                     lista = []
                     for e in emails:
                         lista.append({
-                            "Nome": f"{e.get('first_name', '')} {e.get('last_name', '')}".strip() or "N/D",
-                            "Ruolo": e.get('position', 'N/D'),
-                            "Email": e.get('value', 'N/D'),
-                            "LinkedIn": e.get('linkedin', 'N/D')
+                            "👤 Nome": f"{e.get('first_name', '')} {e.get('last_name', '')}".strip() or "N/D",
+                            "💼 Ruolo": e.get('position', 'N/D'),
+                            "📧 Email": e.get('value', 'N/D'),
+                            "🔗 LinkedIn": e.get('linkedin', 'N/D')
                         })
-                        
+                    
                     df = pd.DataFrame(lista)
-                    df.index = df.index + 1 
-                        
-                    st.dataframe(df, use_container_width=True, 
-                                     column_config={"LinkedIn": st.column_config.LinkColumn()})
+                    df.index = df.index + 1 # Numerazione da 1
+                    
+                    # Configurazione colonne per rendere cliccabile LinkedIn
+                    st.dataframe(
+                        df, 
+                        use_container_width=True, 
+                        column_config={
+                            "🔗 LinkedIn": st.column_config.LinkColumn()
+                        }
+                    )
                 else:
-                    st.warning("Nessun contatto trovato nel database Hunter.")
-            else:
-                st.error(f"Errore API Hunter: {dati_risposta.get('errors', [{}])[0].get('detail', 'Errore sconosciuto')}")
-            
-        except Exception as e:
-            st.error(f"Errore critico: {e}")
+                    st.warning("Nessun contatto trovato per questo dominio.")
