@@ -222,11 +222,6 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                     st.warning("Nessun contatto trovato.")
                 
         # --- AGGIUNTA PULSANTE DOWNLOAD NELL'APP ---
-        if 'df' in locals():
-            pdf_bytes = crea_pdf(ragione_sociale, piva_trovata, citta_trovata, dominio_vincente, df)
-            st.download_button(
-                label="📥 Scarica Report PDF",
-                data=pdf_bytes,
-                file_name=f"Report_{ragione_sociale}.pdf",
-                mime="application/pdf"
-            )
+                st.download_button("📥 Scarica Report PDF", data=crea_pdf(ragione_sociale, piva_trovata, citta_trovata, dominio_vincente, df, dominio_vincente), file_name=f"Report_{ragione_sociale}.pdf", mime="application/pdf")
+            else:
+                st.error("Dati non trovati.")
