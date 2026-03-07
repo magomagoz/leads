@@ -56,86 +56,131 @@ if st.button("🔎 AVVIA RICERCA SMART", type="primary"):
                 piva_trovata = data_trovata.get('vat', 'Non disponibile su Hunter')
                 citta_trovata = data_trovata.get('city', 'Non disponibile su Hunter')
                 
+                # --- 2. CRAWLING INVESTIGATIVO (HOME + PAGINE CHIAVE) ---
+                testo_sito_esteso = ""
+                pagine_da_visitare = ["", "/contatti", "/chi-siamo", "/team", "/about-us"]
+                
                 try:
-                    url_sito = f"https://{dominio_vincente}"
-                    response_web = requests.get(url_sito, timeout=5)
-                    soup = BeautifulSoup(response_web.text, 'html.parser')
-                    testo_sito = soup.get_text()
-                    if piva_trovata == 'Non disponibile su Hunter':
-                        match_piva = re.search(r'\b\d{11}\b', testo_sito)
-                        if match_piva: piva_trovata = match_piva.group(0)
+                    for pag in pagine_da_visitare:
+                        url_test = f"https://{dominio_vincente}{pag}"
+                        try:
+                            res_p = requests.get(url_test, timeout=5, headers={'User-Agent': 'Mozilla/5.0'})
+                            if res_p.status_code == 200:
+                                soup_p = BeautifulSoup(res_p.text, 'html.parser')
+                                testo_sito_esteso += " " + soup_p.get_text()
+                                
+                                # Prova a estrarre la città se ancora manca
+                                if citta_trovata == 'Non disponibile su Hunter':
+                                    # Cerca CAP italiano + Città (es: 00100 Roma)
+                                    match_c = re.search(r'\b\d{5}\b\s+([A-Z][a-zA-ZÀ-ÿ\s]+)', soup_p.get_text())
+                                    if match_c:
+                                        citta_trovata = match_c.group(1).split('\n')[0][:30].strip()
+                        except:
+                            continue # Se una pagina non esiste, passa alla prossima
                 except:
                     pass
 
+
+                
+                    
                 # --- VISUALIZZAZIONE ---
                 st.success(f"✅ Dominio identificato: **{dominio_vincente}**")
                 st.markdown("---")
                 col_logo, col_info = st.columns([1, 4])
                 
                 with col_logo:
-                    logo_trovato = False
-                    
-                    # 1. TENTATIVO: Scraping diretto dal sito (molto affidabile)
-                    try:
-                        url_sito = f"https://{dominio_vincente}"
-                        response_web = requests.get(url_sito, timeout=5, headers={'User-Agent': 'Mozilla/5.0'})
-                        soup = BeautifulSoup(response_web.text, 'html.parser')
-                        
-                        # Cerca l'icona nei meta tag del sito
-                        icon_link = soup.find("link", rel=re.compile(r"icon", re.I))
-                        if icon_link and icon_link.get('href'):
-                            url_icona = icon_link.get('href')
-                            # Gestione URL relativi (es. /favicon.ico -> https://dominio.it/favicon.ico)
-                            if not url_icona.startswith('http'):
-                                url_icona = f"{url_sito.rstrip('/')}/{url_icona.lstrip('/')}"
-                            
-                            st.image(url_icona, width=100)
-                            logo_trovato = True
-                    except:
-                        pass
-
-                    # 2. FALLBACK: Se lo scraping fallisce, pulsante di ricerca rapida
-                    if not logo_trovato:
-                        st.markdown("### ⭐️")
-                        search_url = f"https://www.google.com/search?q={ragione_sociale}+logo&tbm=isch"
-                        st.link_button("🖼️ Vedi Logo", search_url)
+                    # (Codice logo precedente...)
+                    st.image(f"https://www.google.com/s2/favicons?domain={dominio_vincente}&sz=128", width=80)
                 
                 with col_info:
                     st.subheader("🏢 Informazioni Aziendali")
                     c1, c2 = st.columns(2)
                     with c1:
-                        st.write(f"**Ragione Sociale:** {ragione_sociale}")
-                        st.write(f"**Partita IVA:** {piva_trovata}")
+                        st.write(f"**🏭 Ragione Sociale:** {ragione_sociale}")
+                        st.write(f"**🆔 Partita IVA:** {piva_trovata}")
                     with c2:
-                        st.write(f"**Città/Sede:** {citta_trovata}")
-                        st.write(f"**Sito Web:** www.{dominio_vincente}")
-                    
+                        st.write(f"**📍 Città/Sede:** {citta_trovata}")
+                        st.write(f"**🌐 Sito Web:** www.{dominio_vincente}")
+
+                    # Link rapido a Google Maps per la città
+                    if citta_trovata != 'Non disponibile su Hunter':
+                        st.caption(f"[Vedi su Maps](https://www.google.com/maps/search/{ragione_sociale}+{citta_trovata})")
+                                
                 st.markdown("---")
 
-                # 4. TABELLA PERSONE CON ICONE
+                # --- 4. TABELLA PERSONE CON LINK SOCIAL GENERATI ---
                 emails = data_trovata.get("emails", [])
                 if emails:
                     st.subheader(f"👥 Persone trovate ({len(emails)})")
-                    
                     lista = []
                     for e in emails:
+                        nome_completo = f"{e.get('first_name', '')} {e.get('last_name', '')}".strip()
+                        linkedin_url = e.get('linkedin')
+                        
+                        # TRUCCO: Se LinkedIn manca, generiamo un link di ricerca automatica su Google
+                        if not linkedin_url and nome_completo:
+                            linkedin_url = f"https://www.google.com/search?q=site:linkedin.com/in/+{nome_completo.replace(' ', '+')}+{ragione_sociale}"
+                        
                         lista.append({
-                            "👤 Nome": f"{e.get('first_name', '')} {e.get('last_name', '')}".strip() or "N/D",
-                            "💼 Ruolo": e.get('position', 'N/D'),
+                            "👤 Nome": nome_completo or "Contatto",
+                            "💼 Ruolo": e.get('position', 'Manager / Specialist'), # Placeholder più professionale
                             "📧 Email": e.get('value', 'N/D'),
-                            "🔗 LinkedIn": e.get('linkedin', 'N/D')
+                            "🔗 LinkedIn": linkedin_url
                         })
                     
                     df = pd.DataFrame(lista)
-                    df.index = df.index + 1 # Numerazione da 1
+                    df.index = df.index + 1
+                    st.dataframe(df, use_container_width=True, column_config={"🔗 LinkedIn": st.column_config.LinkColumn("Profilo/Ricerca")})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                # --- 4. TABELLA PERSONE CON "LINKEDIN MAGIC SEARCH" ---
+                emails = data_trovata.get("emails", [])
+                if emails:
+                    st.subheader(f"👥 Lead Identificati ({len(emails)})")
+                    lista = []
+                    for e in emails:
+                        nome = f"{e.get('first_name', '')} {e.get('last_name', '')}".strip()
+                        ruolo = e.get('position', 'N/D')
+                        
+                        # Se il ruolo è N/D su Hunter, cerchiamo di indovinarlo dal dominio (es. sales@...)
+                        email_val = e.get('value', '')
+                        if ruolo == 'N/D':
+                            if 'sales' in email_val: ruolo = 'Sales Dept'
+                            elif 'info' in email_val: ruolo = 'Customer Office'
+                            elif 'admin' in email_val: ruolo = 'Administration'
+                        
+                        # GENERAZIONE LINK LINKEDIN (Cerca su Google se manca il link diretto)
+                        lk_url = e.get('linkedin')
+                        if not lk_url and nome:
+                            # Ricerca mirata: site:linkedin.com/in/ Nome Cognome Azienda
+                            lk_url = f"https://www.google.com/search?q=site:linkedin.com/in/+{nome.replace(' ', '+')}+{ragione_sociale.replace(' ', '+')}"
+                        
+                        lista.append({
+                            "👤 Nome": nome or "Lead",
+                            "💼 Ruolo": ruolo,
+                            "📧 Email": email_val,
+                            "🔗 LinkedIn": lk_url
+                        })
                     
-                    # Configurazione colonne per rendere cliccabile LinkedIn
-                    st.dataframe(
-                        df, 
-                        use_container_width=True, 
-                        column_config={
-                            "🔗 LinkedIn": st.column_config.LinkColumn()
-                        }
-                    )
+                    df = pd.DataFrame(lista)
+                    df.index = df.index + 1
+                    
+                    # Colonna LinkedIn come Link cliccabile
+                    st.dataframe(df, use_container_width=True, 
+                                 column_config={"🔗 LinkedIn": st.column_config.LinkColumn("Apri Profilo/Ricerca")})
                 else:
-                    st.warning("Nessun contatto trovato per questo dominio.")
+                    st.warning("Nessun contatto trovato.")
