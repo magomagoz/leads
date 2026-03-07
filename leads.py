@@ -88,44 +88,31 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
     if not nome_input:
         st.warning("Inserisci un nome o un dominio.")
     else:
-        with st.spinner("Scansione e ricerca in corso..."):
-            # 1. Pulizia stringa (toglie spazi, mette in minuscolo)
-            input_pulito = nome_input.strip().lower()
-            
-            # 2. Rimuove eventuali "https://" o "www." se l'utente incolla un link
-            input_pulito = re.sub(r'^https?://', '', input_pulito)
-            input_pulito = re.sub(r'^www\.', '', input_pulito)
-            # Rimuove eventuali percorsi finali (es. acea.it/contatti -> acea.it)
-            input_pulito = input_pulito.split('/')[0] 
-            
-            # 3. CONTROLLO: È già un dominio completo?
-            if "." in input_pulito:
-                domini_da_provare = [input_pulito] # Prova SOLO questo
-            else:
-                # È solo un nome, crea la lista delle estensioni
-                estensioni = ["it", "com", "biz", "eu", "cloud"]
-                domini_da_provare = [f"{input_pulito}.{ext}" for ext in estensioni]
-            
+        with st.spinner("Scansione estensioni in corso..."):
+            nome_puro = nome_input.strip().lower().split('.')[0]
             progress_bar = st.progress(0)
-            data_trovata = None
+            estensioni = ["it", "com", "biz", "eu", "cloud"]
             
-            # 4. Ciclo aggiornato per usare la nuova lista
-            for i, test_dom in enumerate(domini_da_provare):
+            data_trovata = None # Inizializza come None
+            
+            for i, ext in enumerate(estensioni):
+                test_dom = f"{nome_puro}.{ext}"
+                url_h = f"https://api.hunter.io/v2/domain-search?domain={test_dom}&api_key={HUNTER_API_KEY}"
+                
                 try:
-                    url_h = f"https://api.hunter.io/v2/domain-search?domain={test_dom}&api_key={HUNTER_API_KEY}"
-                    res = session.get(url_h, timeout=10)
-                    
-                    if res.status_code == 200 and res.json().get("data", {}).get("emails"):
-                        data_trovata = res.json()["data"]
-                        dominio_vincente = test_dom
-                        progress_bar.progress(1.0)
-                        break
-                except: 
+                    # Usa session.get invece di requests.get
+                    res = session.get(url_h, timeout=10) 
+                    if res.status_code == 200:
+                        temp_data = res.json().get("data", {})
+                        if temp_data.get("emails"):
+                            data_trovata = temp_data
+                            dominio_vincente = test_dom
+                            progress_bar.progress(1.0)
+                            break
+                except:
                     pass
-                
-                # Aggiorna la barra di progresso in base alla lunghezza della lista
-                progress_bar.progress((i + 1) / len(domini_da_provare))
-                
+                progress_bar.progress((i + 1) / len(estensioni))
+            
             progress_bar.empty()
             
             # Aggiunto controllo: se non troviamo dati, avvisiamo l'utente
