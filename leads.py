@@ -114,8 +114,8 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                                 citta_trovata = match_c.group(1).strip()
                     except:
                         continue
-                except:
-                    pass
+                #except:
+                    #pass
                     
                 # --- VISUALIZZAZIONE ---
                 st.success(f"✅ Dominio identificato: **{dominio_vincente}**")
