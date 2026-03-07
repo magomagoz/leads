@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 import re
+from fpdf import FPDF
 
 session = requests.Session()
 session.headers.update({'User-Agent': 'Mozilla/5.0'})
@@ -59,8 +60,6 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
             if not data_trovata:
                 st.error("❌ Nessun dato trovato per questo nome. Prova ad inserire il dominio completo.")
                 st.stop()
-
-
 
             if data_trovata:
                 # 2. Dati base e Scraping (usando il dominio trovato)
@@ -119,6 +118,7 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                 st.success(f"✅ Dominio identificato: **{dominio_vincente}**")
                 st.markdown("---")
                 st.header("🏢 Informazioni Aziendali")
+                st.write(" ")
                 col_logo, col_info = st.columns([1, 4])
                 
                 with col_logo:
@@ -177,4 +177,44 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                                  column_config={"🔗 LinkedIn": st.column_config.LinkColumn("Apri Profilo/Ricerca")})
                 else:
                     st.warning("Nessun contatto trovato.")
+
+# --- FUNZIONE GENERAZIONE PDF ---
+def crea_pdf(ragione_sociale, piva, citta, sito, df):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(200, 10, txt=f"Report Lead: {ragione_sociale}", ln=True, align='C')
+    
+    pdf.set_font("Arial", size=12)
+    pdf.ln(10)
+    pdf.cell(200, 10, txt=f"Partita IVA: {piva}", ln=True)
+    pdf.cell(200, 10, txt=f"Citta: {citta}", ln=True)
+    pdf.cell(200, 10, txt=f"Sito Web: {sito}", ln=True)
+    pdf.ln(10)
+    
+    # Tabella nel PDF
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(40, 10, "Nome", border=1)
+    pdf.cell(50, 10, "Ruolo", border=1)
+    pdf.cell(60, 10, "Email", border=1)
+    pdf.ln()
+    
+    pdf.set_font("Arial", size=10)
+    for index, row in df.iterrows():
+        pdf.cell(40, 10, str(row['👤 Nome']), border=1)
+        pdf.cell(50, 10, str(row['💼 Ruolo']), border=1)
+        pdf.cell(60, 10, str(row['📧 Email']), border=1)
+        pdf.ln()
+        
+    return pdf.output(dest='S').encode('latin-1')
+
+# --- AGGIUNTA PULSANTE DOWNLOAD NELL'APP ---
+if 'df' in locals():
+    pdf_bytes = crea_pdf(ragione_sociale, piva_trovata, citta_trovata, dominio_vincente, df)
+    st.download_button(
+        label="📥 Scarica Report PDF",
+        data=pdf_bytes,
+        file_name=f"Report_{ragione_sociale}.pdf",
+        mime="application/pdf"
+    )
 
