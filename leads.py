@@ -114,9 +114,9 @@ if st.button("🔎 AVVIA RICERCA SMART", type="primary"):
                     st.subheader(f"👥 Persone trovate ({len(emails)})")
                     lista = []
                     for e in emails:
-                        #nome_completo = f"{e.get('first_name', '')} {e.get('last_name', '')}".strip()
+                        nome_completo = f"{e.get('first_name', '')} {e.get('last_name', '')}".strip()
     
-                        nome = f"{e.get('first_name', '')} {e.get('last_name', '')}".strip()
+                        #nome = f"{e.get('first_name', '')} {e.get('last_name', '')}".strip()
                         ruolo = e.get('position', 'N/D')
                         
                         # Se il ruolo è N/D su Hunter, cerchiamo di indovinarlo dal dominio (es. sales@...)
