@@ -133,20 +133,6 @@ if st.button("🔎 AVVIA RICERCA SMART", type="primary"):
                     st.dataframe(df, use_container_width=True, column_config={"🔗 LinkedIn": st.column_config.LinkColumn("Profilo/Ricerca")})
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                 # --- 4. TABELLA PERSONE CON "LINKEDIN MAGIC SEARCH" ---
                 emails = data_trovata.get("emails", [])
                 if emails:
