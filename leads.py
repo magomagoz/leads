@@ -73,8 +73,24 @@ if st.button("🔎 AVVIA RICERCA SMART", type="primary"):
                 col_logo, col_info = st.columns([1, 4])
                 
                 with col_logo:
+                    # Definiamo l'URL del logo
                     logo_url = f"https://logo.clearbit.com/{dominio_vincente}?size=200"
-                    st.image(logo_url, width=150)
+                    
+                    try:
+                        # Usiamo un User-Agent per sembrare un browser vero e non un bot
+                        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+                        check_logo = requests.get(logo_url, headers=headers, timeout=5)
+                        
+                        if check_logo.status_code == 200:
+                            st.image(logo_url, width=150)
+                        else:
+                            # Se Clearbit fallisce, proviamo un secondo servizio (Google Favicon)
+                            backup_logo = f"https://www.google.com/s2/favicons?domain={dominio_vincente}&sz=128"
+                            st.image(backup_logo, width=100)
+                            st.caption("Logo da Google")
+                    except Exception as e:
+                        st.markdown("### 🏢")
+                        st.caption("Logo non disponibile")
                 
                 with col_info:
                     st.subheader("🏢 Informazioni Aziendali")
