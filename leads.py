@@ -4,6 +4,12 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import re
 
+session = requests.Session()
+session.headers.update({'User-Agent': 'Mozilla/5.0'})
+
+# E nel tuo codice sostituisci ogni requests.get con:
+session.get(url, timeout=5)
+
 # --- CONFIGURAZIONE PAGINA ---
 st.set_page_config(layout="wide", page_title="Lead Gen Smart Search")
 
@@ -28,13 +34,13 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
         with st.spinner("Scansione estensioni in corso..."):
             # Pulizia input e lista estensioni da provare
             nome_puro = nome_input.strip().lower().split('.')[0]
+                        # --- POSIZIONE 1: Inizializza qui ---
+            progress_bar = st.progress(0)
+            
+            # Ciclo di test sui domini
             estensioni = ["it", "com", "biz", "eu", "cloud"]
             
-            data_trovata = None
-            dominio_vincente = None
-
-            # Ciclo di test sui domini
-            for ext in estensioni:
+            for i, ext in enumerate(estensioni): # Aggiungi 'i' con enumerate
                 test_dom = f"{nome_puro}.{ext}"
                 url_h = f"https://api.hunter.io/v2/domain-search?domain={test_dom}&api_key={HUNTER_API_KEY}"
                 
@@ -42,13 +48,21 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                     res = requests.get(url_h, timeout=10)
                     if res.status_code == 200:
                         temp_data = res.json().get("data", {})
-                        # Se troviamo almeno una email, consideriamo il dominio valido
                         if temp_data.get("emails"):
                             data_trovata = temp_data
                             dominio_vincente = test_dom
+                            # --- POSIZIONE 2: Porta al 100% se trovi subito ---
+                            progress_bar.progress(1.0)
                             break
                 except:
-                    continue
+                    pass
+                
+                # --- POSIZIONE 3: Aggiorna il progresso ---
+                progress_bar.progress((i + 1) / len(estensioni))
+               
+            # Nasconde la barra una volta finita la ricerca
+            progress_bar.empty()
+
 
             if data_trovata:
                 # 2. Dati base e Scraping (usando il dominio trovato)
@@ -82,25 +96,24 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                 
                 # --- 2. CRAWLING INVESTIGATIVO (HOME + PAGINE CHIAVE) ---
                 testo_sito_esteso = ""
-                pagine_da_visitare = ["", "/contatti", "/chi-siamo", "/team", "/about-us"]
                 
-                try:
-                    for pag in pagine_da_visitare:
-                        url_test = f"https://{dominio_vincente}{pag}"
-                        try:
-                            res_p = requests.get(url_test, timeout=5, headers={'User-Agent': 'Mozilla/5.0'})
-                            if res_p.status_code == 200:
-                                soup_p = BeautifulSoup(res_p.text, 'html.parser')
-                                testo_sito_esteso += " " + soup_p.get_text()
-                                
-                                # Prova a estrarre la città se ancora manca
-                                if citta_trovata == 'Non disponibile su Hunter':
-                                    # Cerca CAP italiano + Città (es: 00100 Roma)
-                                    match_c = re.search(r'\b\d{5}\b\s+([A-Z][a-zA-ZÀ-ÿ\s]+)', soup_p.get_text())
-                                    if match_c:
-                                        citta_trovata = match_c.group(1).split('\n')[0][:30].strip()
-                        except:
-                            continue # Se una pagina non esiste, passa alla prossima
+                pagine_da_visitare = ["/contatti", "/chi-siamo"] # Limitiamo le pagine critiche
+                
+                for pag in pagine_da_visitare:
+                    if citta_trovata != 'Non disponibile su Hunter': # Se l'abbiamo già, non cercare più
+                        break
+                        
+                    url_test = f"https://{dominio_vincente}{pag}"
+                    try:
+                        res_p = session.get(url_test, timeout=3) # Timeout più stretto
+                        if res_p.status_code == 200:
+                            soup_p = BeautifulSoup(res_p.text, 'html.parser')
+                            # Regex ottimizzata per estrarre la città
+                            match_c = re.search(r'\b\d{5}\b\s+([A-Z][a-zA-ZÀ-ÿ\s]{2,20})', soup_p.get_text())
+                            if match_c:
+                                citta_trovata = match_c.group(1).strip()
+                    except:
+                        continue
                 except:
                     pass
                     
