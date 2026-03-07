@@ -122,7 +122,7 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
 
             if data_trovata:
                 # Usa input_pulito (o dominio_vincente) invece di nome_puro
-                ragione_sociale = data_trovata.get('organization', input_pulito.capitalize())
+                ragione_sociale = data_trovata.get('organization', nome_puro.capitalize())
                 
                 # --- SCRAPING AVANZATO P.IVA E CITTÀ ---
                 piva_trovata = data_trovata.get('vat', 'Non trovata')
