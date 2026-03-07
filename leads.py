@@ -159,8 +159,6 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                     c1.write(f"**🆔 Partita IVA:** {piva_trovata}")
                     c2.write(f"**📍 Città/Sede:** {citta_trovata}")
                     c2.write(f"**🌐 Sito Web:** www.{dominio_vincente}")
-                    if citta_trovata != 'Non trovata':
-                        c2.caption(f"[Vedi su Maps](http://google.com/maps/search/{ragione_sociale}+{citta_trovata})")
 
                     # Link rapido a Google Maps per la città
                     if citta_trovata != 'Non disponibile su Hunter':
