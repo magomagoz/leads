@@ -73,21 +73,32 @@ if st.button("🔎 AVVIA RICERCA SMART", type="primary"):
                 col_logo, col_info = st.columns([1, 4])
                 
                 with col_logo:
-                    logo_url = f"https://logo.clearbit.com/{dominio_vincente}?size=200"
+                    logo_trovato = False
                     
+                    # 1. TENTATIVO: Scraping diretto dal sito (molto affidabile)
                     try:
-                        headers = {'User-Agent': 'Mozilla/5.0'}
-                        check = requests.get(logo_url, headers=headers, timeout=5)
+                        url_sito = f"https://{dominio_vincente}"
+                        response_web = requests.get(url_sito, timeout=5, headers={'User-Agent': 'Mozilla/5.0'})
+                        soup = BeautifulSoup(response_web.text, 'html.parser')
                         
-                        if check.status_code == 200:
-                            st.image(logo_url, width=150)
-                        else:
-                            # Se non lo troviamo, mettiamo un'icona e un link a Google Immagini
-                            st.markdown("### ⭐️")
-                            search_url = f"https://www.google.com/search?q={ragione_sociale}+logo&tbm=isch"
-                            st.link_button("🔎 Cerca Logo su Google", search_url)
+                        # Cerca l'icona nei meta tag del sito
+                        icon_link = soup.find("link", rel=re.compile(r"icon", re.I))
+                        if icon_link and icon_link.get('href'):
+                            url_icona = icon_link.get('href')
+                            # Gestione URL relativi (es. /favicon.ico -> https://dominio.it/favicon.ico)
+                            if not url_icona.startswith('http'):
+                                url_icona = f"{url_sito.rstrip('/')}/{url_icona.lstrip('/')}"
+                            
+                            st.image(url_icona, width=100)
+                            logo_trovato = True
                     except:
+                        pass
+
+                    # 2. FALLBACK: Se lo scraping fallisce, pulsante di ricerca rapida
+                    if not logo_trovato:
                         st.markdown("### ⭐️")
+                        search_url = f"https://www.google.com/search?q={ragione_sociale}+logo&tbm=isch"
+                        st.link_button("🖼️ Vedi Logo", search_url)
                 
                 with col_info:
                     st.subheader("🏢 Informazioni Aziendali")
