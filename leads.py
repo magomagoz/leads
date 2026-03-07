@@ -19,7 +19,7 @@ st.image("banner.png")
 #st.title("🚀 Lead Generation Intelligente")
 st.info("Inserisci solo il nome (es: 'Acea') e il sistema proverà le estensioni .it, .com, .biz, .eu, .cloud")
 
-nome_input = st.text_input("🏢 Nome azienda")
+nome_input = st.text_input("🏢 **Nome azienda**")
 
 if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
     if not nome_input:
