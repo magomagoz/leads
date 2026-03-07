@@ -9,6 +9,22 @@ from datetime import datetime
 session = requests.Session()
 session.headers.update({'User-Agent': 'Mozilla/5.0'})
 
+# --- 1. SCRAPING P.IVA POTENZIATO ---
+def trova_piva(testo, dominio):
+    # Regex mirata per P.IVA italiana (11 cifre)
+    pattern = r'(?:partita\s*iva|p\.?i\.?v\.?a|vat)\s*(?::|n\.?)?\s*([0-9\s.]{11,15})'
+    match = re.search(pattern, testo, re.IGNORECASE)
+    if match:
+        return re.sub(r'[\s.]', '', match.group(1))
+    return None
+
+# --- 2. SCRAPING CITTÀ POTENZIATO ---
+def trova_citta(testo):
+    # Cerca il pattern CAP + CITTÀ (es. 00144 Roma)
+    pattern = r'\b\d{5}\b\s+([A-Z][a-zA-Zà-ÿ\s]{2,20})'
+    match = re.search(pattern, testo)
+    return match.group(1).strip() if match else None
+
 # --- CONFIGURAZIONE PAGINA ---
 st.set_page_config(layout="wide", page_title="Lead Gen Smart Search")
 
