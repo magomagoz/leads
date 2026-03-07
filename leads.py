@@ -7,9 +7,6 @@ import re
 session = requests.Session()
 session.headers.update({'User-Agent': 'Mozilla/5.0'})
 
-# E nel tuo codice sostituisci ogni requests.get con:
-session.get(url, timeout=5)
-
 # --- CONFIGURAZIONE PAGINA ---
 st.set_page_config(layout="wide", page_title="Lead Gen Smart Search")
 
