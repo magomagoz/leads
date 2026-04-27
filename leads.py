@@ -145,7 +145,8 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                 st.error("❌ Impossibile trovare un dominio valido per questa azienda su Hunter.")
             else:
                 # RECUPERO RAGIONE SOCIALE (Mancava nel tuo codice!)
-                ragione_sociale = data_trovata.get('organization', nome_input.title())
+                # Usiamo "or" in modo che, se Hunter restituisce None, forziamo l'uso del nome inserito dall'utente
+                ragione_sociale = data_trovata.get('organization') or nome_input.title()
 
                 # 2. Deep Scraping per Social e Dati Legali
                 social_links = {}
@@ -212,9 +213,13 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                             elif 'info' in email_val: ruolo = 'Customer Office'
                             elif 'admin' in email_val: ruolo = 'Administration'
                         
+                        # GENERAZIONE LINK LINKEDIN (Cerca su Google se manca il link diretto)
                         lk_url = e.get('linkedin')
                         if not lk_url and nome:
-                            lk_url = f"https://www.google.com/search?q=site:linkedin.com/in/+{nome.replace(' ', '+')}+{ragione_sociale.replace(' ', '+')}"
+                            # Assicuriamoci che ragione_sociale sia sempre una stringa valida
+                            ragione_sicura = str(ragione_sociale) if ragione_sociale else ""
+                            # Ricerca mirata: site:linkedin.com/in/ Nome Cognome Azienda
+                            lk_url = f"https://www.google.com/search?q=site:linkedin.com/in/+{nome.replace(' ', '+')}+{ragione_sicura.replace(' ', '+')}"
                         
                         lista.append({
                             "👤 Nome": nome or "Lead",
