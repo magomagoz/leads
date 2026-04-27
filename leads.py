@@ -63,7 +63,7 @@ except:
 
 st.title("🚀 Lead Generation & Social Finder")
 
-nome_input = st.text_input("🏢 Inserisci Nome Azienda (es. King Limousine)")
+nome_input = st.text_input("🏢 Inserisci Nome Azienda (es. ACEA)")
 
 if st.button("🔎 AVVIA RICERCA", type="primary"):
     if not nome_input:
@@ -72,7 +72,7 @@ if st.button("🔎 AVVIA RICERCA", type="primary"):
         with st.spinner("Analisi in corso..."):
             # Gestione nome composto
             nome_puro = pulisci_nome_per_dominio(nome_input)
-            estensioni = ["it", "com", "net", "eu"]
+            estensioni = ["it", "com", "net", "eu", "cloud", "biz"]
             
             data_trovata = None
             dominio_vincente = ""
