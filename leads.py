@@ -109,97 +109,7 @@ class PDFReport(FPDF):
         self.set_font("Arial", 'I', 8)
         self.cell(0, 10, f"Generato il {datetime.now().strftime('%d/%m/%Y %H:%M')} | Pagina {self.page_no()}", align='C')
 
-st.title("🚀 Lead Generation & Social Finder")
 
-nome_input = st.text_input("🏢 Inserisci Nome Azienda (es. ACEA)")
-
-if st.button("🔎 AVVIA RICERCA", type="primary"):
-    if not nome_input:
-        st.warning("Inserisci un nome.")
-    else:
-        with st.spinner("Analisi in corso..."):
-            # Gestione nome composto
-            nome_puro = pulisci_nome_per_dominio(nome_input)
-            estensioni = ["it", "com", "net", "eu", "cloud", "biz"]
-            
-            data_trovata = None
-            dominio_vincente = ""
-
-            # 1. Ricerca Dominio
-            for ext in estensioni:
-                test_dom = f"{nome_puro}.{ext}"
-                url_h = f"https://api.hunter.io/v2/domain-search?domain={test_dom}&api_key={HUNTER_API_KEY}"
-                try:
-                    res = session.get(url_h, timeout=5)
-                    if res.status_code == 200:
-                        temp_data = res.json().get("data", {})
-                        if temp_data.get("emails") or temp_data.get("organization"):
-                            data_trovata = temp_data
-                            dominio_vincente = test_dom
-                            break
-                except: continue
-
-            if not data_trovata:
-                st.error("Impossibile trovare un dominio valido per questa azienda. Prova con il sito web diretto.")
-            else:
-                # 2. Deep Scraping per Social e Dati Legali
-                social_links = {}
-                piva_trovata = "Non trovata"
-                citta_trovata = "Non trovata"
-                
-                try:
-                    r = session.get(f"http://www.{dominio_vincente}", timeout=8)
-                    soup = BeautifulSoup(r.text, 'html.parser')
-                    testo_completo = soup.get_text(separator=' ', strip=True)
-                    
-                    social_links = trova_social(soup)
-                    piva_trovata = trova_piva(testo_completo) or "Non trovata"
-                    citta_trovata = trova_citta(testo_completo) or "Non trovata"
-                except:
-                    st.warning("Impossibile accedere direttamente al sito per lo scraping social.")
-
-                # --- UI DISPLAY ---
-                st.subheader(f"🏢 {data_trovata.get('organization', nome_input.capitalize())}")
-                
-                col1, col2, col3 = st.columns(3)
-                col1.metric("Partita IVA", piva_trovata)
-                col2.metric("Sede", citta_trovata)
-                col3.metric("Dominio", dominio_vincente)
-
-                # Sezione Social
-                st.write("### 🔗 Canali Social Trovati")
-                s_cols = st.columns(3)
-                for i, (platform, link) in enumerate(social_links.items()):
-                    if link:
-                        s_cols[i].markdown(f"✅ **[{platform.capitalize()}]({link})**")
-                    else:
-                        s_cols[i].markdown(f"❌ {platform.capitalize()} non trovato")
-
-                # --- TABELLA EMAIL ---
-                emails = data_trovata.get("emails", [])
-                if emails:
-                    st.write(f"### 👥 Contatti Email ({len(emails)})")
-                    df_list = []
-                    for e in emails:
-                        df_list.append({
-                            "Nome": f"{e.get('first_name', '')} {e.get('last_name', '')}",
-                            "Ruolo": e.get('position', 'N/D'),
-                            "Email": e.get('value'),
-                            "Tipo": e.get('type')
-                        })
-                    df = pd.DataFrame(df_list)
-                    st.table(df)
-
-
-
-
-
-
-
-
-
-
-    
 st.image("banner.png")
 
 #st.title("🚀 Lead Generation Intelligente")
@@ -214,10 +124,11 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
         with st.spinner("Scansione estensioni in corso..."):
             nome_puro = nome_input.strip().lower().split('.')[0]
             progress_bar = st.progress(0)
-            estensioni = ["it", "com", "biz", "eu", "cloud"]
+            estensioni = ["it", "com", "biz", "eu", "cloud", "biz"]
             
             data_trovata = None # Inizializza come None
-            
+            dominio_vincente = ""
+
             for i, ext in enumerate(estensioni):
                 test_dom = f"{nome_puro}.{ext}"
                 url_h = f"https://api.hunter.io/v2/domain-search?domain={test_dom}&api_key={HUNTER_API_KEY}"
@@ -331,3 +242,17 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                 st.download_button("📥 Scarica Report PDF", data=crea_pdf(ragione_sociale, piva_trovata, citta_trovata, dominio_vincente, df, dominio_vincente), file_name=f"Report_{ragione_sociale}.pdf", mime="application/pdf")
             else:
                 st.error("Dati non trovati.")
+                # --- TABELLA EMAIL ---
+                emails = data_trovata.get("emails", [])
+                if emails:
+                    st.write(f"### 👥 Contatti Email ({len(emails)})")
+                    df_list = []
+                    for e in emails:
+                        df_list.append({
+                            "Nome": f"{e.get('first_name', '')} {e.get('last_name', '')}",
+                            "Ruolo": e.get('position', 'N/D'),
+                            "Email": e.get('value'),
+                            "Tipo": e.get('type')
+                        })
+                    df = pd.DataFrame(df_list)
+                    st.table(df)
