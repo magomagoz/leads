@@ -106,7 +106,7 @@ try:
 except:
     pass # Evita errori se banner.png non è presente nella cartella
 
-st.info("Inserisci solo il nome (es: 'King Limousine') e il sistema proverà le estensioni principali.")
+st.info("Inserisci solo il nome (es: 'ACEA') e il sistema proverà le estensioni principali.")
 
 nome_input = st.text_input("🏢 **Inserisci nome azienda**")
 
