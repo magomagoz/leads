@@ -127,54 +127,38 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
             data_trovata = None # Inizializza come None
             dominio_vincente = ""
 
-            for i, ext in enumerate(estensioni):
+            # 1. Ricerca Dominio
+            for ext in estensioni:
                 test_dom = f"{nome_puro}.{ext}"
                 url_h = f"https://api.hunter.io/v2/domain-search?domain={test_dom}&api_key={HUNTER_API_KEY}"
-                
                 try:
-                    # Usa session.get invece di requests.get
-                    res = session.get(url_h, timeout=10) 
+                    res = session.get(url_h, timeout=5)
                     if res.status_code == 200:
                         temp_data = res.json().get("data", {})
-                        if temp_data.get("emails"):
+                        if temp_data.get("emails") or temp_data.get("organization"):
                             data_trovata = temp_data
                             dominio_vincente = test_dom
-                            progress_bar.progress(1.0)
                             break
-                except:
-                    pass
-                progress_bar.progress((i + 1) / len(estensioni))
-            
-            progress_bar.empty()
-            
-            # Aggiunto controllo: se non troviamo dati, avvisiamo l'utente
-            if not data_trovata:
-                st.error("❌ Nessun dato trovato per questo nome. Prova ad inserire il dominio completo.")
-                st.stop()
+                except: continue
 
-            if data_trovata:
-                # Usa input_pulito (o dominio_vincente) invece di nome_puro
-                ragione_sociale = data_trovata.get('organization', nome_puro.capitalize())
+            if not data_trovata:
+                st.error("Impossibile trovare un dominio valido per questa azienda. Prova con il sito web diretto.")
+            else:
+                # 2. Deep Scraping per Social e Dati Legali
+                social_links = {}
+                piva_trovata = "Non trovata"
+                citta_trovata = "Non trovata"
                 
-                # --- SCRAPING AVANZATO P.IVA E CITTÀ ---
-                piva_trovata = data_trovata.get('vat', 'Non trovata')
-                citta_trovata = data_trovata.get('city', 'Non trovata')
-                
-                # Scansione pagine per dati mancanti
-                if piva_trovata == 'Non trovata' or citta_trovata == 'Non trovata':
-                    pagine = ["", "/contatti", "/chi-siamo", "/legal", "/privacy-policy"]
-                    for p in pagine:
-                        try:
-                            r = session.get(f"https://{dominio_vincente}{p}", timeout=5)
-                            soup = BeautifulSoup(r.text, 'html.parser')
-                            testo = soup.get_text(separator=' ', strip=True)
-                            
-                            if piva_trovata == 'Non trovata':
-                                piva_trovata = trova_piva(testo, dominio_vincente) or 'Non trovata'
-                            if citta_trovata == 'Non trovata':
-                                citta_trovata = trova_citta(testo) or 'Non trovata'
-                        except: 
-                            continue
+                try:
+                    r = session.get(f"http://www.{dominio_vincente}", timeout=8)
+                    soup = BeautifulSoup(r.text, 'html.parser')
+                    testo_completo = soup.get_text(separator=' ', strip=True)
+                    
+                    social_links = trova_social(soup)
+                    piva_trovata = trova_piva(testo_completo) or "Non trovata"
+                    citta_trovata = trova_citta(testo_completo) or "Non trovata"
+                except:
+                    st.warning("Impossibile accedere direttamente al sito per lo scraping social.")
 
                 # --- VISUALIZZAZIONE ---
                 st.success(f"✅ Dominio identificato: **{dominio_vincente}**")
