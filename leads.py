@@ -67,7 +67,6 @@ def crea_pdf(ragione_sociale, piva, citta, sito, df, dominio):
         pdf.image("temp_logo.png", x=10, y=8, w=15)
     except: pass
 
-
     # Header e Dati
     pdf.set_font("Arial", 'B', 20)
     pdf.cell(0, 15, f"Report Lead: {ragione_sociale}", ln=True, align='C')
@@ -109,22 +108,21 @@ class PDFReport(FPDF):
         self.set_font("Arial", 'I', 8)
         self.cell(0, 10, f"Generato il {datetime.now().strftime('%d/%m/%Y %H:%M')} | Pagina {self.page_no()}", align='C')
 
-
 st.image("banner.png")
 
 #st.title("🚀 Lead Generation Intelligente")
-st.info("Inserisci solo il nome (es: 'Acea') e il sistema proverà le estensioni .it, .com, .biz, .eu, .cloud")
+st.info("Inserisci solo il nome (es: 'Acea') e il sistema proverà le estensioni .it, .com, .biz, .eu, .cloud, .net")
 
-nome_input = st.text_input("🏢 **Nome azienda**")
+nome_input = st.text_input("🏢 **Inserisci nome azienda**")
 
 if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
     if not nome_input:
-        st.warning("Inserisci un nome o un dominio.")
+        st.warning("Inserisci un nome.")
     else:
-        with st.spinner("Scansione estensioni in corso..."):
+        with st.spinner("Ricerca in corso..."):
             nome_puro = nome_input.strip().lower().split('.')[0]
             progress_bar = st.progress(0)
-            estensioni = ["it", "com", "biz", "eu", "cloud", "biz"]
+            estensioni = ["it", "com", "biz", "eu", "cloud", "net"]
             
             data_trovata = None # Inizializza come None
             dominio_vincente = ""
