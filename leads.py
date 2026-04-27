@@ -195,13 +195,22 @@ if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
                     # Link rapido a Google Maps per la città
                     if citta_trovata != 'Non disponibile su Hunter':
                         st.caption(f"[Vedi su Maps](https://www.google.com/maps/search/{ragione_sociale}+{citta_trovata})")
-                                
+                         
+                # Sezione Social
+                st.write("### 🔗 Canali Social Trovati")
+                s_cols = st.columns(3)
+                for i, (platform, link) in enumerate(social_links.items()):
+                    if link:
+                        s_cols[i].markdown(f"✅ **[{platform.capitalize()}]({link})**")
+                    else:
+                        s_cols[i].markdown(f"❌ {platform.capitalize()} non trovato")
+                        
                 st.markdown("---")
 
                 # --- 4. TABELLA PERSONE CON "LINKEDIN MAGIC SEARCH" ---
                 emails = data_trovata.get("emails", [])
                 if emails:
-                    st.subheader(f"👥 Lead Identificati ({len(emails)})")
+                    st.subheader(f"👥 Contatti Identificati ({len(emails)})")
                     lista = []
                     for e in emails:
                         nome = f"{e.get('first_name', '')} {e.get('last_name', '')}".strip()
