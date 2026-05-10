@@ -6,32 +6,23 @@ import re
 from fpdf import FPDF
 from datetime import datetime
 
-# --- CONFIGURAZIONE PAGINA (DEVE ESSERE IL PRIMO COMANDO STREAMLIT) ---
+# --- CONFIGURAZIONE PAGINA ---
 st.set_page_config(layout="wide", page_title="Lead Gen Smart Search")
 
-# Configurazione sessione
 session = requests.Session()
 session.headers.update({
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 })
 
-# --- RECUPERO CHIAVE SICURO ---
+# --- RECUPERO CHIAVE ---
 try:
     HUNTER_API_KEY = st.secrets["HUNTER_API_KEY"]
 except:
-    st.error("❌ Errore: HUNTER_API_KEY non trovata nei secrets!")
+    st.error("❌ Errore: HUNTER_API_KEY non trovata!")
     st.stop()
 
-# --- CLASSE PER PDF PROFESSIONALE ---
-class PDFReport(FPDF):
-    def footer(self):
-        self.set_y(-15)
-        self.set_font("Arial", 'I', 8)
-        self.cell(0, 10, f"Generato il {datetime.now().strftime('%d/%m/%Y %H:%M')} | Pagina {self.page_no()}", align='C')
-
-# --- FUNZIONI DI UTILITÀ ---
+# --- FUNZIONI DI SUPPORTO ---
 def pulisci_nome_per_dominio(nome):
-    """Trasforma 'King Limousine' in 'kinglimousine'"""
     nome = nome.lower().strip()
     return re.sub(r'[^a-z0-9]', '', nome)
 
@@ -46,200 +37,135 @@ def trova_social(soup):
         href = a['href'].lower()
         for platform, pattern in patterns.items():
             if not socials[platform] and re.search(pattern, href):
-                if href.startswith('/'): continue 
+                if not href.startswith('http'): continue
                 socials[platform] = href
     return socials
 
 def trova_piva(testo):
-    # Rimosso il parametro dominio inutile
     pattern = r'(?:partita\s*iva|p\.?i\.?v\.?a|vat)\s*(?::|n\.?)?\s*([0-9\s.]{11,15})'
     match = re.search(pattern, testo, re.IGNORECASE)
-    if match:
-        return re.sub(r'[\s.]', '', match.group(1))
-    return None
+    return re.sub(r'[\s.]', '', match.group(1)) if match else None
 
 def trova_citta(testo):
     pattern = r'\b\d{5}\b\s+([A-Z][a-zA-Zà-ÿ\s]{2,20})'
     match = re.search(pattern, testo)
     return match.group(1).strip() if match else None
 
+# --- GESTIONE PDF ---
+class PDFReport(FPDF):
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("Arial", 'I', 8)
+        self.cell(0, 10, f"Generato il {datetime.now().strftime('%d/%m/%Y %H:%M')}", align='C')
+
 def crea_pdf(ragione_sociale, piva, citta, sito, df, dominio):
     pdf = PDFReport()
     pdf.add_page()
-    # Logo dinamico
-    try:
-        logo_url = f"https://www.google.com/s2/favicons?domain={dominio}&sz=128"
-        img_data = requests.get(logo_url, timeout=3).content
-        with open("temp_logo.png", "wb") as f: f.write(img_data)
-        pdf.image("temp_logo.png", x=10, y=8, w=15)
-    except: pass
-
-    # Header e Dati
     pdf.set_font("Arial", 'B', 20)
     pdf.cell(0, 15, f"Report Lead: {ragione_sociale}", ln=True, align='C')
-    pdf.ln(5)
     pdf.set_font("Arial", '', 12)
-    pdf.cell(0, 10, f"Partita IVA: {piva}", ln=True)
-    pdf.cell(0, 10, f"Sede: {citta}", ln=True)
+    pdf.cell(0, 10, f"Partita IVA: {piva} | Sede: {citta}", ln=True)
     pdf.cell(0, 10, f"Sito: {sito}", ln=True)
     pdf.ln(10)
     
-    # Tabella se ci sono contatti
     if not df.empty:
-        pdf.set_font("Arial", 'B', 11)
-        pdf.set_fill_color(200, 220, 255)
-        pdf.cell(50, 10, "Nome", border=1, fill=True)
-        pdf.cell(50, 10, "Ruolo", border=1, fill=True)
-        pdf.cell(90, 10, "Email", border=1, fill=True)
-        pdf.ln()
-        pdf.set_font("Arial", size=10)
+        pdf.set_font("Arial", 'B', 10)
         for _, row in df.iterrows():
-            pdf.cell(50, 10, str(row['👤 Nome'])[:25], border=1)
-            pdf.cell(50, 10, str(row['💼 Ruolo'])[:25], border=1)
-            pdf.cell(90, 10, str(row['📧 Email']), border=1)
-            pdf.ln()
+            pdf.cell(0, 8, f"{row['👤 Nome']} - {row['💼 Ruolo']} - {row['📧 Email']}", ln=True)
     return pdf.output(dest='S').encode('latin-1')
 
-# --- INTERFACCIA STREAMLIT ---
-try:
-    st.image("banner.png")
-except:
-    pass # Evita errori se banner.png non è presente nella cartella
+# --- LOGICA APP ---
+st.title("🚀 Smart Lead Selector")
+st.info("Inserisci il nome (es. 'King Limousine'). Il sistema cercherà tutti i domini disponibili.")
 
-st.info("Inserisci solo il nome (es: 'ACEA') e il sistema proverà le estensioni principali.")
+nome_input = st.text_input("🏢 **Nome Azienda**", key="main_input")
 
-nome_input = st.text_input("🏢 **Inserisci nome azienda**")
+# Inizializza session_state per i risultati della scansione
+if 'risultati_scansione' not in st.session_state:
+    st.session_state.risultati_scansione = None
 
-if st.button("🔎 **AVVIA RICERCA SMART**", type="primary"):
+if st.button("🔎 SCANSIONA ESTENSIONI"):
     if not nome_input:
         st.warning("Inserisci un nome.")
     else:
-        with st.spinner("Ricerca in corso..."):
-            # ORA USIAMO LA FUNZIONE CORRETTA PER I NOMI COMPOSTI
+        with st.spinner("Scansione in corso su tutte le estensioni..."):
             nome_puro = pulisci_nome_per_dominio(nome_input)
-            progress_bar = st.progress(0)
-            estensioni = ["it", "com", "biz", "eu", "cloud", "net"]
+            estensioni = ["it", "com", "net", "eu", "biz", "org", "cloud"]
+            trovati = []
             
-            data_trovata = None 
-            dominio_vincente = ""
-
-            # 1. Ricerca Dominio
+            p_bar = st.progress(0)
             for i, ext in enumerate(estensioni):
                 test_dom = f"{nome_puro}.{ext}"
-                url_h = f"https://api.hunter.io/v2/domain-search?domain={test_dom}&api_key={HUNTER_API_KEY}"
                 try:
-                    res = session.get(url_h, timeout=5)
-                    if res.status_code == 200:
-                        temp_data = res.json().get("data", {})
-                        if temp_data.get("emails") or temp_data.get("organization"):
-                            data_trovata = temp_data
-                            dominio_vincente = test_dom
-                            progress_bar.progress(1.0)
-                            break
+                    url_h = f"https://api.hunter.io/v2/domain-search?domain={test_dom}&api_key={HUNTER_API_KEY}"
+                    res = session.get(url_h, timeout=5).json()
+                    data = res.get("data", {})
+                    if data.get("emails") or data.get("organization"):
+                        trovati.append({"dominio": test_dom, "data": data})
                 except: pass
-                progress_bar.progress((i + 1) / len(estensioni))
-                
-            progress_bar.empty()
+                p_bar.progress((i + 1) / len(estensioni))
+            
+            st.session_state.risultati_scansione = trovati
+            if not trovati:
+                st.error("Nessun dominio trovato. Prova un altro nome.")
 
-            if not data_trovata:
-                st.error("❌ Impossibile trovare un dominio valido per questa azienda su Hunter.")
-            else:
-                # RECUPERO RAGIONE SOCIALE (Mancava nel tuo codice!)
-                # Usiamo "or" in modo che, se Hunter restituisce None, forziamo l'uso del nome inserito dall'utente
-                ragione_sociale = data_trovata.get('organization') or nome_input.title()
+# --- LIVELLO INTERMEDIO: SELEZIONE ---
+if st.session_state.risultati_scansione:
+    st.write("### 🎯 Scegli il dominio corretto per generare il report:")
+    
+    # Creiamo una lista di opzioni per l'utente
+    opzioni = {res['dominio']: res for res in st.session_state.risultati_scansione}
+    scelta = st.radio("Domini individuati:", list(opzioni.keys()), horizontal=True)
 
-                # 2. Deep Scraping per Social e Dati Legali
-                social_links = {}
-                piva_trovata = data_trovata.get('vat', "Non trovata")
-                citta_trovata = data_trovata.get('city', "Non trovata")
-                
-                try:
-                    r = session.get(f"http://www.{dominio_vincente}", timeout=8)
-                    soup = BeautifulSoup(r.text, 'html.parser')
-                    testo_completo = soup.get_text(separator=' ', strip=True)
-                    
-                    social_links = trova_social(soup)
-                    if piva_trovata == "Non trovata" or not piva_trovata:
-                        piva_trovata = trova_piva(testo_completo) or "Non trovata"
-                    if citta_trovata == "Non trovata" or not citta_trovata:
-                        citta_trovata = trova_citta(testo_completo) or "Non trovata"
-                except:
-                    st.warning("Impossibile accedere direttamente al sito per lo scraping social profondo.")
+    if st.button("🚀 GENERA REPORT PER " + scelta.upper()):
+        res_selezionato = opzioni[scelta]
+        data_trovata = res_selezionato['data']
+        dominio_vincente = res_selezionato['dominio']
+        
+        # --- ELABORAZIONE DATI ---
+        ragione_sociale = data_trovata.get('organization') or nome_input.title()
+        piva_trovata = data_trovata.get('vat', "Non trovata")
+        citta_trovata = data_trovata.get('city', "Non trovata")
+        
+        # Scraping Social & Legal
+        social_links = {}
+        try:
+            r = session.get(f"http://www.{dominio_vincente}", timeout=5)
+            soup = BeautifulSoup(r.text, 'html.parser')
+            text = soup.get_text(separator=' ', strip=True)
+            social_links = trova_social(soup)
+            if piva_trovata == "Non trovata": piva_trovata = trova_piva(text) or "Non trovata"
+            if citta_trovata == "Non trovata": citta_trovata = trova_citta(text) or "Non trovata"
+        except: st.warning("Impossibile analizzare il sito web per i social.")
 
-                # --- VISUALIZZAZIONE ---
-                st.success(f"✅ Dominio identificato: **{dominio_vincente}**")
-                st.markdown("---")
-                st.header("🏢 Informazioni Aziendali")
-                col_logo, col_info = st.columns([1, 4])
-                
-                with col_logo:
-                    st.image(f"https://www.google.com/s2/favicons?domain={dominio_vincente}&sz=128", width=80)
-                
-                with col_info:
-                    c1, c2 = st.columns(2)
-                    c1.write(f"**🏭 Ragione Sociale:** {ragione_sociale}")
-                    c1.write(f"**🆔 Partita IVA:** {piva_trovata}")
-                    c2.write(f"**📍 Città/Sede:** {citta_trovata}")
-                    c2.write(f"**🌐 Sito Web:** www.{dominio_vincente}")
+        # --- DISPLAY RISULTATI ---
+        st.markdown("---")
+        c1, c2 = st.columns([1, 3])
+        with c1: st.image(f"https://www.google.com/s2/favicons?domain={dominio_vincente}&sz=128")
+        with c2:
+            st.subheader(f"🏢 {ragione_sociale}")
+            st.write(f"📍 **Sede:** {citta_trovata} | 🆔 **P.IVA:** {piva_trovata}")
+            
+        st.write("#### 🔗 Social")
+        scols = st.columns(3)
+        for i, (p, l) in enumerate(social_links.items()):
+            scols[i].write(f"[{p.capitalize()}]({l})" if l else f"{p.capitalize()}: ❌")
 
-                    if citta_trovata != 'Non trovata':
-                        st.caption(f"[Vedi su Maps](https://www.google.com/maps/search/{ragione_sociale}+{citta_trovata})")
-                         
-                # Sezione Social
-                st.write("### 🔗 Canali Social Trovati")
-                s_cols = st.columns(3)
-                for i, (platform, link) in enumerate(social_links.items()):
-                    if link:
-                        s_cols[i].markdown(f"✅ **[{platform.capitalize()}]({link})**")
-                    else:
-                        s_cols[i].markdown(f"❌ {platform.capitalize()} non trovato")
-                        
-                st.markdown("---")
-
-                # --- 4. TABELLA PERSONE CON "LINKEDIN MAGIC SEARCH" ---
-                emails = data_trovata.get("emails", [])
-                df = pd.DataFrame() # Inizializziamo sempre il DF vuoto per evitare errori nel PDF
-                
-                if emails:
-                    st.subheader(f"👥 Contatti Identificati ({len(emails)})")
-                    lista = []
-                    for e in emails:
-                        nome = f"{e.get('first_name', '')} {e.get('last_name', '')}".strip()
-                        ruolo = e.get('position', 'N/D')
-                        email_val = e.get('value', '')
-                        
-                        if ruolo == 'N/D':
-                            if 'sales' in email_val: ruolo = 'Sales Dept'
-                            elif 'info' in email_val: ruolo = 'Customer Office'
-                            elif 'admin' in email_val: ruolo = 'Administration'
-                        
-                        # GENERAZIONE LINK LINKEDIN (Cerca su Google se manca il link diretto)
-                        lk_url = e.get('linkedin')
-                        if not lk_url and nome:
-                            # Assicuriamoci che ragione_sociale sia sempre una stringa valida
-                            ragione_sicura = str(ragione_sociale) if ragione_sociale else ""
-                            # Ricerca mirata: site:linkedin.com/in/ Nome Cognome Azienda
-                            lk_url = f"https://www.google.com/search?q=site:linkedin.com/in/+{nome.replace(' ', '+')}+{ragione_sicura.replace(' ', '+')}"
-                        
-                        lista.append({
-                            "👤 Nome": nome or "Lead",
-                            "💼 Ruolo": ruolo,
-                            "📧 Email": email_val,
-                            "🔗 LinkedIn": lk_url
-                        })
-                    
-                    df = pd.DataFrame(lista)
-                    df.index = df.index + 1
-                    
-                    st.dataframe(df, use_container_width=True, 
-                                 column_config={"🔗 LinkedIn": st.column_config.LinkColumn("Apri Profilo/Ricerca")})
-                else:
-                    st.warning("Nessun contatto email trovato tramite Hunter per questo dominio.")
-                
-                # --- AGGIUNTA PULSANTE DOWNLOAD NELL'APP ---
-                st.download_button(
-                    label="📥 Scarica Report PDF", 
-                    data=crea_pdf(ragione_sociale, piva_trovata, citta_trovata, dominio_vincente, df, dominio_vincente), 
-                    file_name=f"Report_{ragione_sociale.replace(' ', '_')}.pdf", 
-                    mime="application/pdf"
-                )
+        # Tabella Email
+        emails = data_trovata.get("emails", [])
+        df = pd.DataFrame()
+        if emails:
+            st.write("#### 👥 Contatti")
+            lista = []
+            for e in emails:
+                nome = f"{e.get('first_name', '')} {e.get('last_name', '')}".strip() or "Lead"
+                email = e.get('value', '')
+                ruolo = e.get('position', 'N/D')
+                lk = e.get('linkedin') or f"https://www.google.com/search?q=linkedin+{nome}+{ragione_sociale}"
+                lista.append({"👤 Nome": nome, "💼 Ruolo": ruolo, "📧 Email": email, "🔗 LinkedIn": lk})
+            df = pd.DataFrame(lista)
+            st.dataframe(df, column_config={"🔗 LinkedIn": st.column_config.LinkColumn()})
+        
+        # Download
+        pdf_data = crea_pdf(ragione_sociale, piva_trovata, citta_trovata, dominio_vincente, df, dominio_vincente)
+        st.download_button("📥 Scarica PDF", pdf_data, f"{dominio_vincente}.pdf", "application/pdf")
